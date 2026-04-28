@@ -44,6 +44,7 @@ This project follows the spirit of [Keep a Changelog](https://keepachangelog.com
 - Added detailed Supabase sync enablement steps to `todo.md`.
 - Added project journal rules to `AGENTS.md`.
 - Added a phased product roadmap to `todo.md`.
+- Added a small production-safe logger with dev-only debug/info logs and always-on warnings/errors.
 
 ### Changed
 - Replaced Claude/Cowork-specific save logic with a reusable data layer.
@@ -54,6 +55,7 @@ This project follows the spirit of [Keep a Changelog](https://keepachangelog.com
 - Updated storage key versions during demo data and persistence changes so fresh test data could load cleanly.
 - Simplified Supabase sync to plain `projects`, `tasks`, `subtasks`, and `files` tables with localStorage-first saves.
 - Removed current-phase Supabase RLS/auth assumptions from the schema documentation; auth and RLS remain future work.
+- Replaced temporary render, route, hydration, and Supabase debug logs with concise logging summaries.
 
 ### Fixed
 - Fixed Supabase save sync to upsert exact `projects`, `tasks`, and `subtasks` rows with required foreign keys.

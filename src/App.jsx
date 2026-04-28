@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { cacheState, defaultData, loadRemoteState, loadState, mergeStateByUpdatedAt, normalizeData, saveState } from './lib/storage.js';
+import { logger } from './lib/logger.js';
 import Modal from './components/Modal.jsx';
 import PriorityDashboard from './components/PriorityDashboard.jsx';
 import ProjectCard from './components/ProjectCard.jsx';
@@ -51,6 +52,10 @@ function routePath({ view, routeProjectParam, activeTab, project, projects }) {
   return '/';
 }
 
+function countTasks(projects = []) {
+  return projects.reduce((total, project) => total + (project.tasks?.length || 0), 0);
+}
+
 export default function App() {
   const initialRoute = routeFromLocation();
   const [data, setData] = useState(defaultData);
@@ -66,42 +71,37 @@ export default function App() {
   useEffect(() => {
     let alive = true;
     async function hydrateState() {
+      let usedRemote = false;
+      let hydratedState = null;
       try {
         const localState = await loadState();
         if (!alive) return;
         const normalizedLocal = normalizeData(localState);
+        hydratedState = normalizedLocal;
         setData(normalizedLocal);
-        console.log('[hydrate] local', {
-          projects: localState?.projects?.length,
-          tasks: localState?.projects?.flatMap((project) => project.tasks || []).length,
-        });
-        console.log('Loaded local state', normalizedLocal);
 
-        console.log('Fetching remote Supabase state');
         const remoteState = await loadRemoteState();
         if (!alive) return;
 
         const normalizedRemote = remoteState ? normalizeData(remoteState) : null;
-        console.log('[hydrate] remote', {
-          projects: remoteState?.projects?.length,
-          tasks: remoteState?.projects?.flatMap((project) => project.tasks || []).length,
-          taskNames: remoteState?.projects?.flatMap((project) => project.tasks || []).map((task) => task.text),
-        });
         const hasRemoteProjects = Boolean(normalizedRemote?.projects?.length);
         const hasRemoteTasks = Boolean(normalizedRemote?.projects?.some((project) => project.tasks?.length));
         if (hasRemoteProjects || hasRemoteTasks) {
+          usedRemote = true;
           const mergedState = mergeStateByUpdatedAt(normalizedLocal, normalizedRemote);
-          console.log('[hydrate] applying remote');
-          console.log('Applying remote Supabase state', mergedState);
+          hydratedState = mergedState;
           setData(mergedState);
-          console.log('[hydrate] applied remote');
           cacheState(mergedState);
         }
       } catch (error) {
-        console.error('Hydration error', error);
+        logger.error('Hydration error', error);
       } finally {
         if (!alive) return;
-        console.log('Hydration complete');
+        logger.info('hydrate: complete', {
+          usedRemote,
+          projectCount: hydratedState?.projects?.length || 0,
+          taskCount: countTasks(hydratedState?.projects),
+        });
         setHasHydrated(true);
         setIsInitializing(false);
       }
@@ -113,14 +113,6 @@ export default function App() {
     };
   }, []);
 
-  useEffect(() => {
-    console.log('[state] current', {
-      projects: data?.projects?.length,
-      tasks: data?.projects?.flatMap((project) => project.tasks || []).length,
-      taskNames: data?.projects?.flatMap((project) => project.tasks || []).map((task) => task.text),
-    });
-  }, [data]);
-
   const projects = data.projects;
   const activeProject = useMemo(
     () => resolveProjectByRouteParam(projects, routeProjectParam),
@@ -131,25 +123,6 @@ export default function App() {
     [projects, pendingRoute],
   );
   const detailProject = activeProject || pendingRouteProject;
-
-  useEffect(() => {
-    console.log('[route] current', {
-      path: window.location.pathname,
-      view,
-      routeProjectParam,
-      pendingRoute,
-      activeTab,
-      filters: data.filters,
-      activeProject: detailProject ? {
-        id: detailProject.id,
-        slug: detailProject.slug,
-        routeKey: projectRouteKey(detailProject, projects),
-        name: detailProject.name,
-        tasks: detailProject.tasks?.length,
-        taskNames: detailProject.tasks?.map((task) => task.text),
-      } : null,
-    });
-  }, [routeProjectParam, pendingRoute, detailProject, activeTab, data.filters, projects, view]);
 
   useEffect(() => {
     const onPopState = () => {
@@ -169,29 +142,11 @@ export default function App() {
     if (!hasHydrated || isInitializing || view !== 'detail' || !routeProjectParam) return;
 
     const resolvedProject = resolveProjectByRouteParam(projects, routeProjectParam);
-    console.log('[route] resolution check', {
-      routeProjectParam,
-      resolvedProjectId: resolvedProject?.id,
-      resolvedProjectName: resolvedProject?.name,
-      resolvedProjectSlug: resolvedProject?.slug,
-      availableProjects: projects.map((project) => ({
-        id: project.id,
-        name: project.name,
-        slug: project.slug,
-        generatedSlug: slugify(project.name),
-      })),
-    });
-
     if (!resolvedProject) {
-      console.log('[route] unresolved project route', {
-        path: window.location.pathname,
+      logger.warn('route: unresolved project route', {
         routeProjectParam,
-        availableProjects: projects.map((project) => ({
-          id: project.id,
-          slug: project.slug,
-          name: project.name,
-          generatedSlug: slugify(project.name),
-        })),
+        path: window.location.pathname,
+        projectCount: projects.length,
       });
       window.history.replaceState(null, '', '/');
       setView('home');
@@ -220,15 +175,9 @@ export default function App() {
     if (hasHydrated && view === 'detail' && activeProject) {
       const canonicalPath = projectPath(activeProject, projects, activeTab);
       if (window.location.pathname !== canonicalPath) {
-        console.log('[route] canonicalizing project route', {
+        logger.debug('route: canonicalizing project route', {
           from: window.location.pathname,
           to: canonicalPath,
-          activeProject: {
-            id: activeProject.id,
-            slug: activeProject.slug,
-            routeKey: projectRouteKey(activeProject, projects),
-            name: activeProject.name,
-          },
         });
         window.history.replaceState(null, '', canonicalPath);
         setRouteProjectParam(projectRouteKey(activeProject, projects));
@@ -246,7 +195,7 @@ export default function App() {
     saveState(normalized)
       .then(() => setSyncState('saved'))
       .catch((error) => {
-        console.error('State persistence error', error);
+        logger.error('State persistence error', error);
         setSyncState('saved');
       });
   }, [hasHydrated, isInitializing]);

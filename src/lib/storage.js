@@ -1,4 +1,5 @@
 import { isSupabaseConfigured, supabase } from './supabase.js';
+import { logger } from './logger.js';
 
 const STORAGE_KEY = 'project-ecosystem:data:v2';
 
@@ -310,14 +311,8 @@ export async function loadRemoteState() {
 
     const filesResult = await supabase.from('files').select('*');
     if (filesResult.error) {
-      console.error('Supabase files load error', filesResult.error);
+      logger.warn('Supabase files load error', filesResult.error);
     }
-
-    console.log('[remote rows]', {
-      projects: projectsResult.data?.length,
-      tasks: tasksResult.data?.length,
-      subtasks: subtasksResult.data?.length,
-    });
 
     const remoteState = composeData({
       projects: projectsResult.data || [],
@@ -328,7 +323,7 @@ export async function loadRemoteState() {
     const normalized = normalizeData(remoteState);
     return normalized;
   } catch (error) {
-    console.error('Supabase load error', error);
+    logger.error('Supabase load error', error);
     return null;
   }
 }
@@ -366,7 +361,7 @@ export async function saveState(state) {
       .catch(() => undefined)
       .then(() => syncStateToSupabase(normalized))
       .catch((error) => {
-        console.error('Supabase save error', error);
+        logger.error('Supabase save error', error);
       });
   }
 
@@ -393,7 +388,7 @@ async function loadLocalFallback() {
   try {
     return readLocalState();
   } catch (error) {
-    console.error('localStorage load error', error);
+    logger.error('localStorage load error', error);
     return clone(defaultData);
   }
 }
@@ -475,15 +470,16 @@ function groupBy(items, key) {
 async function syncStateToSupabase(data) {
   const rows = flattenData(data);
 
-  console.log('Saving to Supabase', {
-    projects: rows.projects,
-    tasks: rows.tasks,
-    subtasks: rows.subtasks,
+  logger.info('sync: saving', {
+    projectCount: rows.projects.length,
+    taskCount: rows.tasks.length,
   });
 
   await upsertRows('projects', rows.projects);
   await upsertRows('tasks', rows.tasks);
   await upsertRows('subtasks', rows.subtasks);
+
+  logger.info('sync: saved');
 }
 
 function flattenData(data) {
@@ -532,7 +528,6 @@ async function upsertRows(table, rows) {
   if (!rows.length) return;
   const { error } = await supabase.from(table).upsert(rows, { onConflict: 'id' });
   if (error) {
-    console.error('Supabase save error', error);
     throw error;
   }
 }

@@ -1,4 +1,3 @@
-import { useEffect } from 'react';
 import ImportanceBadge from './ImportanceBadge.jsx';
 
 const getAllTasks = (projects) => projects.flatMap((project) => (
@@ -29,20 +28,6 @@ export default function PriorityDashboard({ projects, filters, onFiltersChange, 
       return true;
     })
     .sort((a, b) => (order[a.importance] ?? 1) - (order[b.importance] ?? 1));
-
-  useEffect(() => {
-    console.log('[render] priority dashboard', {
-      path: window.location.pathname,
-      filters,
-      count: tasks.length,
-      taskNames: tasks.map((task) => task.text),
-      projects: projects.map((project) => ({
-        id: project.id,
-        name: project.name,
-        tasks: project.tasks?.length,
-      })),
-    });
-  }, [filters, projects, tasks]);
 
   return (
     <section className="dash-section">
