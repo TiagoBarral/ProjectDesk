@@ -63,6 +63,7 @@ This project follows the spirit of [Keep a Changelog](https://keepachangelog.com
 - Fixed project rename persistence by saving project slugs locally and to Supabase.
 - Fixed project rename navigation so the app applies the renamed project state before moving to the new slug route.
 - Fixed project rename route races by pausing route fallback while the renamed project route is pending.
+- Fixed stale remote hydration overwrites by timestamping project/task edits and merging local and Supabase state by `updated_at`.
 
 ### Verified
 - Installed Node.js/npm through winget when npm was missing.

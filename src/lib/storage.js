@@ -259,6 +259,7 @@ export function normalizeData(data) {
         color: project.color,
         status: project.status || 'planning',
         notes: project.notes || '',
+        updated_at: project.updated_at || null,
         files: Array.isArray(project.files) ? project.files : [],
         tasks: (project.tasks || []).map((task, taskIndex) => {
           const taskId = ensureUuid(task.id, `task:${projectId}:${taskIndex}:${task.text || ''}`);
@@ -269,6 +270,7 @@ export function normalizeData(data) {
             importance: task.importance || 'medium',
             done: Boolean(task.done),
             expanded: Boolean(task.expanded),
+            updated_at: task.updated_at || null,
             subtasks: (task.subtasks || []).map((subtask, subtaskIndex) => ({
               id: ensureUuid(subtask.id, `subtask:${taskId}:${subtaskIndex}:${subtask.text || ''}`),
               text: subtask.text || '',
@@ -324,12 +326,35 @@ export async function loadRemoteState() {
       files: filesResult.error ? [] : filesResult.data || [],
     });
     const normalized = normalizeData(remoteState);
-    writeLocalState(normalized);
     return normalized;
   } catch (error) {
     console.error('Supabase load error', error);
     return null;
   }
+}
+
+export function mergeStateByUpdatedAt(localState, remoteState) {
+  const local = normalizeData(localState);
+  const remote = normalizeData(remoteState);
+  const localProjects = new Map(local.projects.map((project) => [project.id, project]));
+  const remoteProjects = new Map(remote.projects.map((project) => [project.id, project]));
+  const projectIds = new Set([...localProjects.keys(), ...remoteProjects.keys()]);
+
+  return normalizeData({
+    projects: Array.from(projectIds).map((projectId) => {
+      const localProject = localProjects.get(projectId);
+      const remoteProject = remoteProjects.get(projectId);
+      if (!localProject) return remoteProject;
+      if (!remoteProject) return localProject;
+
+      const projectBase = isNewer(localProject.updated_at, remoteProject.updated_at) ? localProject : remoteProject;
+      return {
+        ...projectBase,
+        tasks: mergeTasksByUpdatedAt(localProject.tasks || [], remoteProject.tasks || []),
+      };
+    }),
+    filters: local.filters || remote.filters || defaultData.filters,
+  });
 }
 
 export async function saveState(state) {
@@ -386,6 +411,7 @@ function composeData({ projects, tasks, subtasks, files }) {
       color: project.color || '#5e5ce6',
       status: project.status || 'active',
       notes: project.notes || '',
+      updated_at: project.updated_at || null,
       files: (filesByProject[project.id] || []).map((file) => ({
         id: file.id,
         name: file.name,
@@ -403,6 +429,7 @@ function composeData({ projects, tasks, subtasks, files }) {
         importance: task.importance || 'medium',
         done: Boolean(task.done ?? task.completed),
         expanded: Boolean(task.expanded),
+        updated_at: task.updated_at || null,
         subtasks: (subtasksByTask[task.id] || []).map((subtask) => ({
           id: subtask.id,
           text: subtask.text || subtask.title || '',
@@ -412,6 +439,29 @@ function composeData({ projects, tasks, subtasks, files }) {
     })),
     filters: defaultData.filters,
   };
+}
+
+function mergeTasksByUpdatedAt(localTasks, remoteTasks) {
+  const localById = new Map(localTasks.map((task) => [task.id, task]));
+  const remoteById = new Map(remoteTasks.map((task) => [task.id, task]));
+  const taskIds = new Set([...localById.keys(), ...remoteById.keys()]);
+
+  return Array.from(taskIds).map((taskId) => {
+    const localTask = localById.get(taskId);
+    const remoteTask = remoteById.get(taskId);
+    if (!localTask) return remoteTask;
+    if (!remoteTask) return localTask;
+    return isNewer(localTask.updated_at, remoteTask.updated_at) ? localTask : remoteTask;
+  });
+}
+
+function isNewer(leftUpdatedAt, rightUpdatedAt) {
+  return timestampValue(leftUpdatedAt) > timestampValue(rightUpdatedAt);
+}
+
+function timestampValue(value) {
+  const timestamp = Date.parse(value || '');
+  return Number.isNaN(timestamp) ? 0 : timestamp;
 }
 
 function groupBy(items, key) {
@@ -451,6 +501,7 @@ function flattenData(data) {
       color: project.color,
       status: project.status,
       notes: project.notes || '',
+      updated_at: project.updated_at || null,
     });
     project.tasks.forEach((task, taskIndex) => {
       const taskId = ensureUuid(task.id, `task:${projectId}:${taskIndex}:${task.text || ''}`);
@@ -461,6 +512,7 @@ function flattenData(data) {
         done: task.done,
         importance: task.importance,
         priority: task.priority,
+        updated_at: task.updated_at || null,
       });
       task.subtasks.forEach((subtask, subtaskIndex) => {
         subtasks.push({

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { cacheState, defaultData, loadRemoteState, loadState, normalizeData, saveState } from './lib/storage.js';
+import { cacheState, defaultData, loadRemoteState, loadState, mergeStateByUpdatedAt, normalizeData, saveState } from './lib/storage.js';
 import Modal from './components/Modal.jsx';
 import PriorityDashboard from './components/PriorityDashboard.jsx';
 import ProjectCard from './components/ProjectCard.jsx';
@@ -7,6 +7,7 @@ import ProjectDetail from './components/ProjectDetail.jsx';
 import SyncStatus from './components/SyncStatus.jsx';
 
 const uid = () => (window.crypto?.randomUUID ? window.crypto.randomUUID() : Math.random().toString(36).slice(2, 9));
+const nowIso = () => new Date().toISOString();
 const tabs = ['tasks', 'notes', 'files'];
 
 function slugify(value) {
@@ -89,11 +90,12 @@ export default function App() {
         const hasRemoteProjects = Boolean(normalizedRemote?.projects?.length);
         const hasRemoteTasks = Boolean(normalizedRemote?.projects?.some((project) => project.tasks?.length));
         if (hasRemoteProjects || hasRemoteTasks) {
+          const mergedState = mergeStateByUpdatedAt(normalizedLocal, normalizedRemote);
           console.log('[hydrate] applying remote');
-          console.log('Applying remote Supabase state', normalizedRemote);
-          setData(normalizedRemote);
+          console.log('Applying remote Supabase state', mergedState);
+          setData(mergedState);
           console.log('[hydrate] applied remote');
-          cacheState(normalizedRemote);
+          cacheState(mergedState);
         }
       } catch (error) {
         console.error('Hydration error', error);
@@ -257,7 +259,10 @@ export default function App() {
   const updateProject = useCallback((projectId, updater) => {
     updateData((current) => ({
       ...current,
-      projects: current.projects.map((project) => (project.id === projectId ? updater(project) : project)),
+      projects: current.projects.map((project) => {
+        if (project.id !== projectId) return project;
+        return { ...updater(project), updated_at: nowIso() };
+      }),
     }));
   }, [updateData]);
 
@@ -298,14 +303,14 @@ export default function App() {
   const toggleTask = (projectId, taskId) => {
     updateProject(projectId, (project) => ({
       ...project,
-      tasks: project.tasks.map((task) => (task.id === taskId ? { ...task, done: !task.done } : task)),
+      tasks: project.tasks.map((task) => (task.id === taskId ? { ...task, done: !task.done, updated_at: nowIso() } : task)),
     }));
   };
 
   const toggleTaskExpanded = (projectId, taskId, expanded) => {
     updateProject(projectId, (project) => ({
       ...project,
-      tasks: project.tasks.map((task) => (task.id === taskId ? { ...task, expanded: expanded ?? !task.expanded } : task)),
+      tasks: project.tasks.map((task) => (task.id === taskId ? { ...task, expanded: expanded ?? !task.expanded, updated_at: nowIso() } : task)),
     }));
   };
 
@@ -316,12 +321,12 @@ export default function App() {
   const addTask = (projectId, task) => {
     updateProject(projectId, (project) => ({
       ...project,
-      tasks: [...project.tasks, { id: uid(), text: task.text, priority: task.priority, importance: task.importance, done: false, expanded: false, subtasks: [] }],
+      tasks: [...project.tasks, { id: uid(), text: task.text, priority: task.priority, importance: task.importance, done: false, expanded: false, updated_at: nowIso(), subtasks: [] }],
     }));
   };
 
   const updateProjectMeta = (projectId, updates) => {
-    const projectUpdates = updates.name ? { ...updates, slug: slugify(updates.name) } : updates;
+    const projectUpdates = updates.name ? { ...updates, slug: slugify(updates.name), updated_at: nowIso() } : { ...updates, updated_at: nowIso() };
     const nextState = normalizeData({
       ...data,
       projects: data.projects.map((project) => (project.id === projectId ? { ...project, ...projectUpdates } : project)),
@@ -342,7 +347,7 @@ export default function App() {
   const updateTask = (projectId, taskId, updates) => {
     updateProject(projectId, (project) => ({
       ...project,
-      tasks: project.tasks.map((task) => (task.id === taskId ? { ...task, ...updates } : task)),
+      tasks: project.tasks.map((task) => (task.id === taskId ? { ...task, ...updates, updated_at: nowIso() } : task)),
     }));
   };
 
@@ -351,6 +356,7 @@ export default function App() {
       ...project,
       tasks: project.tasks.map((task) => task.id === taskId ? {
         ...task,
+        updated_at: nowIso(),
         subtasks: task.subtasks.map((subtask) => (subtask.id === subtaskId ? { ...subtask, done: !subtask.done } : subtask)),
       } : task),
     }));
@@ -363,6 +369,7 @@ export default function App() {
       tasks: project.tasks.map((task) => task.id === taskId ? {
         ...task,
         expanded: true,
+        updated_at: nowIso(),
         subtasks: [...task.subtasks, { id: uid(), text: text.trim(), done: false }],
       } : task),
     }));
@@ -373,6 +380,7 @@ export default function App() {
       ...project,
       tasks: project.tasks.map((task) => task.id === taskId ? {
         ...task,
+        updated_at: nowIso(),
         subtasks: task.subtasks.filter((subtask) => subtask.id !== subtaskId),
       } : task),
     }));
@@ -383,13 +391,14 @@ export default function App() {
       ...project,
       tasks: project.tasks.map((task) => task.id === taskId ? {
         ...task,
+        updated_at: nowIso(),
         subtasks: task.subtasks.map((subtask) => (subtask.id === subtaskId ? { ...subtask, ...updates } : subtask)),
       } : task),
     }));
   };
 
   const updateNotes = (projectId, notes) => {
-    updateProject(projectId, (project) => ({ ...project, notes }));
+    updateProject(projectId, (project) => ({ ...project, notes, updated_at: nowIso() }));
   };
 
   const addFiles = (projectId, files) => {
