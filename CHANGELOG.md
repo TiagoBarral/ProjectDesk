@@ -69,6 +69,7 @@ This project follows the spirit of [Keep a Changelog](https://keepachangelog.com
 - Fixed project rename route races by pausing route fallback while the renamed project route is pending.
 - Fixed stale remote hydration overwrites by timestamping project/task edits and merging local and Supabase state by `updated_at`.
 - Fixed stale-device sync conflicts by keeping soft-delete tombstones, hiding deleted items in the UI, and only upserting rows when the local item event is newer than Supabase.
+- Fixed local ghost-state divergence by treating Supabase as authoritative during hydration unless a local-only item is explicitly marked `sync_pending`.
 
 ### Verified
 - Installed Node.js/npm through winget when npm was missing.

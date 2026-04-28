@@ -262,6 +262,7 @@ export function normalizeData(data) {
         notes: project.notes || '',
         updated_at: project.updated_at || null,
         deleted_at: project.deleted_at || null,
+        sync_pending: Boolean(project.sync_pending),
         files: Array.isArray(project.files) ? project.files : [],
         tasks: (project.tasks || []).map((task, taskIndex) => {
           const taskId = ensureUuid(task.id, `task:${projectId}:${taskIndex}:${task.text || ''}`);
@@ -274,12 +275,14 @@ export function normalizeData(data) {
             expanded: Boolean(task.expanded),
             updated_at: task.updated_at || null,
             deleted_at: task.deleted_at || null,
+            sync_pending: Boolean(task.sync_pending),
             subtasks: (task.subtasks || []).map((subtask, subtaskIndex) => ({
               id: ensureUuid(subtask.id, `subtask:${taskId}:${subtaskIndex}:${subtask.text || ''}`),
               text: subtask.text || '',
               done: Boolean(subtask.done),
               updated_at: subtask.updated_at || null,
               deleted_at: subtask.deleted_at || null,
+              sync_pending: Boolean(subtask.sync_pending),
             })),
           };
         }),
@@ -339,21 +342,25 @@ export function mergeStateByUpdatedAt(localState, remoteState) {
   const remoteProjects = new Map(remote.projects.map((project) => [project.id, project]));
   const projectIds = new Set([...localProjects.keys(), ...remoteProjects.keys()]);
 
-  return normalizeData({
+  const merged = normalizeData({
     projects: Array.from(projectIds).map((projectId) => {
       const localProject = localProjects.get(projectId);
       const remoteProject = remoteProjects.get(projectId);
-      if (!localProject) return remoteProject;
-      if (!remoteProject) return localProject;
+      if (!localProject) return clearSyncPending(remoteProject);
+      if (!remoteProject) return localProject.sync_pending ? localProject : null;
 
-      const projectBase = isNewerEvent(localProject, remoteProject) ? localProject : remoteProject;
+      const projectBase = shouldKeepLocal(localProject, remoteProject) ? localProject : remoteProject;
       return {
-        ...projectBase,
+        ...clearSyncPending(projectBase),
+        sync_pending: projectBase === localProject ? localProject.sync_pending : false,
         tasks: mergeTasksByUpdatedAt(localProject.tasks || [], remoteProject.tasks || []),
       };
-    }),
+    }).filter(Boolean),
     filters: local.filters || remote.filters || defaultData.filters,
   });
+
+  logHydrationCounts(local, remote, merged);
+  return merged;
 }
 
 export async function saveState(state, options = {}) {
@@ -412,6 +419,7 @@ function composeData({ projects, tasks, subtasks, files }) {
       notes: project.notes || '',
       updated_at: project.updated_at || null,
       deleted_at: project.deleted_at || null,
+      sync_pending: false,
       files: (filesByProject[project.id] || []).map((file) => ({
         id: file.id,
         name: file.name,
@@ -431,12 +439,14 @@ function composeData({ projects, tasks, subtasks, files }) {
         expanded: Boolean(task.expanded),
         updated_at: task.updated_at || null,
         deleted_at: task.deleted_at || null,
+        sync_pending: false,
         subtasks: (subtasksByTask[task.id] || []).map((subtask) => ({
           id: subtask.id,
           text: subtask.text || subtask.title || '',
           done: Boolean(subtask.done ?? subtask.completed),
           updated_at: subtask.updated_at || null,
           deleted_at: subtask.deleted_at || null,
+          sync_pending: false,
         })),
       })),
     })),
@@ -452,14 +462,15 @@ function mergeTasksByUpdatedAt(localTasks, remoteTasks) {
   return Array.from(taskIds).map((taskId) => {
     const localTask = localById.get(taskId);
     const remoteTask = remoteById.get(taskId);
-    if (!localTask) return remoteTask;
-    if (!remoteTask) return localTask;
-    const taskBase = isNewerEvent(localTask, remoteTask) ? localTask : remoteTask;
+    if (!localTask) return clearSyncPending(remoteTask);
+    if (!remoteTask) return localTask.sync_pending ? localTask : null;
+    const taskBase = shouldKeepLocal(localTask, remoteTask) ? localTask : remoteTask;
     return {
-      ...taskBase,
+      ...clearSyncPending(taskBase),
+      sync_pending: taskBase === localTask ? localTask.sync_pending : false,
       subtasks: mergeItemsByUpdatedAt(localTask.subtasks || [], remoteTask.subtasks || []),
     };
-  });
+  }).filter(Boolean);
 }
 
 function mergeItemsByUpdatedAt(localItems, remoteItems) {
@@ -470,10 +481,22 @@ function mergeItemsByUpdatedAt(localItems, remoteItems) {
   return Array.from(itemIds).map((itemId) => {
     const localItem = localById.get(itemId);
     const remoteItem = remoteById.get(itemId);
-    if (!localItem) return remoteItem;
-    if (!remoteItem) return localItem;
-    return isNewerEvent(localItem, remoteItem) ? localItem : remoteItem;
-  });
+    if (!localItem) return clearSyncPending(remoteItem);
+    if (!remoteItem) return localItem.sync_pending ? localItem : null;
+    const itemBase = shouldKeepLocal(localItem, remoteItem) ? localItem : remoteItem;
+    return {
+      ...clearSyncPending(itemBase),
+      sync_pending: itemBase === localItem ? localItem.sync_pending : false,
+    };
+  }).filter(Boolean);
+}
+
+function shouldKeepLocal(localItem, remoteItem) {
+  return Boolean(localItem?.sync_pending) && isNewerEvent(localItem, remoteItem);
+}
+
+function clearSyncPending(item) {
+  return item ? { ...item, sync_pending: false } : item;
 }
 
 function isNewerEvent(leftItem, rightItem) {
@@ -495,6 +518,30 @@ function groupBy(items, key) {
     groups[item[key]].push(item);
     return groups;
   }, {});
+}
+
+function logHydrationCounts(local, remote, merged) {
+  logger.debug('hydrate: counts', {
+    localActiveTaskCount: countActiveTasks(local.projects),
+    remoteActiveTaskCount: countActiveTasks(remote.projects),
+    mergedActiveTaskCount: countActiveTasks(merged.projects),
+    localOnlyTaskIds: difference(taskIds(local.projects), taskIds(remote.projects)),
+    remoteOnlyTaskIds: difference(taskIds(remote.projects), taskIds(local.projects)),
+  });
+}
+
+function countActiveTasks(projects = []) {
+  return projects.reduce((total, project) => (
+    project.deleted_at ? total : total + (project.tasks || []).filter((task) => !task.deleted_at).length
+  ), 0);
+}
+
+function taskIds(projects = []) {
+  return new Set(projects.flatMap((project) => (project.tasks || []).map((task) => task.id)));
+}
+
+function difference(leftSet, rightSet) {
+  return Array.from(leftSet).filter((id) => !rightSet.has(id));
 }
 
 async function syncStateToSupabase(data, changed) {

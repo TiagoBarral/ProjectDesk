@@ -53,7 +53,7 @@ function routePath({ view, routeProjectParam, activeTab, project, projects }) {
 }
 
 function countTasks(projects = []) {
-  return projects.reduce((total, project) => total + (project.tasks?.length || 0), 0);
+  return visibleProjects(projects).reduce((total, project) => total + (project.tasks?.length || 0), 0);
 }
 
 function visibleProjects(projects = []) {
@@ -219,12 +219,18 @@ export default function App() {
     persist(nextState, changed);
   }, [data, persist]);
 
-  const updateProject = useCallback((projectId, updater, changed = { projects: [projectId] }) => {
+  const updateProject = useCallback((projectId, updater, changed = { projects: [projectId] }, options = {}) => {
+    const { markProjectPending = true } = options;
     updateData((current) => ({
       ...current,
       projects: current.projects.map((project) => {
         if (project.id !== projectId) return project;
-        return { ...updater(project), updated_at: nowIso() };
+        const updatedProject = updater(project);
+        return {
+          ...updatedProject,
+          updated_at: nowIso(),
+          sync_pending: markProjectPending ? true : Boolean(updatedProject.sync_pending),
+        };
       }),
     }), changed);
   }, [updateData]);
@@ -267,16 +273,16 @@ export default function App() {
     const timestamp = nowIso();
     updateProject(projectId, (project) => ({
       ...project,
-      tasks: project.tasks.map((task) => (task.id === taskId ? { ...task, done: !task.done, updated_at: timestamp } : task)),
-    }), { projects: [projectId], tasks: [taskId] });
+      tasks: project.tasks.map((task) => (task.id === taskId ? { ...task, done: !task.done, updated_at: timestamp, sync_pending: true } : task)),
+    }), { tasks: [taskId] }, { markProjectPending: false });
   };
 
   const toggleTaskExpanded = (projectId, taskId, expanded) => {
     const timestamp = nowIso();
     updateProject(projectId, (project) => ({
       ...project,
-      tasks: project.tasks.map((task) => (task.id === taskId ? { ...task, expanded: expanded ?? !task.expanded, updated_at: timestamp } : task)),
-    }), { projects: [projectId], tasks: [taskId] });
+      tasks: project.tasks.map((task) => (task.id === taskId ? { ...task, expanded: expanded ?? !task.expanded, updated_at: timestamp, sync_pending: true } : task)),
+    }), { tasks: [taskId] }, { markProjectPending: false });
   };
 
   const deleteTask = (projectId, taskId) => {
@@ -284,9 +290,9 @@ export default function App() {
     updateProject(projectId, (project) => ({
       ...project,
       tasks: project.tasks.map((task) => (
-        task.id === taskId ? { ...task, deleted_at: timestamp, updated_at: timestamp } : task
+        task.id === taskId ? { ...task, deleted_at: timestamp, updated_at: timestamp, sync_pending: true } : task
       )),
-    }), { projects: [projectId], tasks: [taskId] });
+    }), { tasks: [taskId] }, { markProjectPending: false });
   };
 
   const addTask = (projectId, task) => {
@@ -294,12 +300,12 @@ export default function App() {
     const taskId = uid();
     updateProject(projectId, (project) => ({
       ...project,
-      tasks: [...project.tasks, { id: taskId, text: task.text, priority: task.priority, importance: task.importance, done: false, expanded: false, updated_at: timestamp, deleted_at: null, subtasks: [] }],
-    }), { projects: [projectId], tasks: [taskId] });
+      tasks: [...project.tasks, { id: taskId, text: task.text, priority: task.priority, importance: task.importance, done: false, expanded: false, updated_at: timestamp, deleted_at: null, sync_pending: true, subtasks: [] }],
+    }), { tasks: [taskId] }, { markProjectPending: false });
   };
 
   const updateProjectMeta = (projectId, updates) => {
-    const projectUpdates = updates.name ? { ...updates, slug: slugify(updates.name), updated_at: nowIso() } : { ...updates, updated_at: nowIso() };
+    const projectUpdates = updates.name ? { ...updates, slug: slugify(updates.name), updated_at: nowIso(), sync_pending: true } : { ...updates, updated_at: nowIso(), sync_pending: true };
     const nextState = normalizeData({
       ...data,
       projects: data.projects.map((project) => (project.id === projectId ? { ...project, ...projectUpdates } : project)),
@@ -321,8 +327,8 @@ export default function App() {
     const timestamp = nowIso();
     updateProject(projectId, (project) => ({
       ...project,
-      tasks: project.tasks.map((task) => (task.id === taskId ? { ...task, ...updates, updated_at: timestamp } : task)),
-    }), { projects: [projectId], tasks: [taskId] });
+      tasks: project.tasks.map((task) => (task.id === taskId ? { ...task, ...updates, updated_at: timestamp, sync_pending: true } : task)),
+    }), { tasks: [taskId] }, { markProjectPending: false });
   };
 
   const toggleSubtask = (projectId, taskId, subtaskId) => {
@@ -332,9 +338,10 @@ export default function App() {
       tasks: project.tasks.map((task) => task.id === taskId ? {
         ...task,
         updated_at: timestamp,
-        subtasks: task.subtasks.map((subtask) => (subtask.id === subtaskId ? { ...subtask, done: !subtask.done, updated_at: timestamp } : subtask)),
+        sync_pending: true,
+        subtasks: task.subtasks.map((subtask) => (subtask.id === subtaskId ? { ...subtask, done: !subtask.done, updated_at: timestamp, sync_pending: true } : subtask)),
       } : task),
-    }), { projects: [projectId], tasks: [taskId], subtasks: [subtaskId] });
+    }), { tasks: [taskId], subtasks: [subtaskId] }, { markProjectPending: false });
   };
 
   const addSubtask = (projectId, taskId, text) => {
@@ -347,9 +354,10 @@ export default function App() {
         ...task,
         expanded: true,
         updated_at: timestamp,
-        subtasks: [...task.subtasks, { id: subtaskId, text: text.trim(), done: false, updated_at: timestamp, deleted_at: null }],
+        sync_pending: true,
+        subtasks: [...task.subtasks, { id: subtaskId, text: text.trim(), done: false, updated_at: timestamp, deleted_at: null, sync_pending: true }],
       } : task),
-    }), { projects: [projectId], tasks: [taskId], subtasks: [subtaskId] });
+    }), { tasks: [taskId], subtasks: [subtaskId] }, { markProjectPending: false });
   };
 
   const deleteSubtask = (projectId, taskId, subtaskId) => {
@@ -359,11 +367,12 @@ export default function App() {
       tasks: project.tasks.map((task) => task.id === taskId ? {
         ...task,
         updated_at: timestamp,
+        sync_pending: true,
         subtasks: task.subtasks.map((subtask) => (
-          subtask.id === subtaskId ? { ...subtask, deleted_at: timestamp, updated_at: timestamp } : subtask
+          subtask.id === subtaskId ? { ...subtask, deleted_at: timestamp, updated_at: timestamp, sync_pending: true } : subtask
         )),
       } : task),
-    }), { projects: [projectId], tasks: [taskId], subtasks: [subtaskId] });
+    }), { tasks: [taskId], subtasks: [subtaskId] }, { markProjectPending: false });
   };
 
   const updateSubtask = (projectId, taskId, subtaskId, updates) => {
@@ -373,9 +382,10 @@ export default function App() {
       tasks: project.tasks.map((task) => task.id === taskId ? {
         ...task,
         updated_at: timestamp,
-        subtasks: task.subtasks.map((subtask) => (subtask.id === subtaskId ? { ...subtask, ...updates, updated_at: timestamp } : subtask)),
+        sync_pending: true,
+        subtasks: task.subtasks.map((subtask) => (subtask.id === subtaskId ? { ...subtask, ...updates, updated_at: timestamp, sync_pending: true } : subtask)),
       } : task),
-    }), { projects: [projectId], tasks: [taskId], subtasks: [subtaskId] });
+    }), { tasks: [taskId], subtasks: [subtaskId] }, { markProjectPending: false });
   };
 
   const updateNotes = (projectId, notes) => {
