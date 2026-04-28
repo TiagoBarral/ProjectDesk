@@ -381,6 +381,7 @@ function composeData({ projects, tasks, subtasks, files }) {
   return {
     projects: projects.map((project) => ({
       id: project.id,
+      slug: project.slug || slugify(project.name || project.title || '') || project.id,
       name: project.name || project.title || '',
       color: project.color || '#5e5ce6',
       status: project.status || 'active',
@@ -442,8 +443,10 @@ function flattenData(data) {
 
   data.projects.forEach((project, projectIndex) => {
     const projectId = ensureUuid(project.id, `project:${projectIndex}:${project.name || ''}`);
+    const projectSlug = project.slug || slugify(project.name) || projectId;
     projects.push({
       id: projectId,
+      slug: projectSlug,
       name: project.name,
       color: project.color,
       status: project.status,

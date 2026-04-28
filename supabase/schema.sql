@@ -5,6 +5,7 @@
 create table if not exists public.projects (
   id uuid primary key default gen_random_uuid(),
   name text not null,
+  slug text,
   color text not null default '#5e5ce6',
   status text not null default 'active',
   notes text not null default '',

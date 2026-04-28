@@ -277,11 +277,12 @@ export default function App() {
   };
 
   const updateProjectMeta = (projectId, updates) => {
-    const nextProjects = projects.map((project) => (project.id === projectId ? { ...project, ...updates } : project));
+    const projectUpdates = updates.name ? { ...updates, slug: slugify(updates.name) } : updates;
+    const nextProjects = projects.map((project) => (project.id === projectId ? { ...project, ...projectUpdates } : project));
     const nextProject = nextProjects.find((project) => project.id === projectId);
     updateData((current) => ({
       ...current,
-      projects: current.projects.map((project) => (project.id === projectId ? { ...project, ...updates } : project)),
+      projects: current.projects.map((project) => (project.id === projectId ? { ...project, ...projectUpdates } : project)),
     }));
     if (view === 'detail' && nextProject && activeProject?.id === projectId) {
       const nextPath = projectPath(nextProject, nextProjects, activeTab);
