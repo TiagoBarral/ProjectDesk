@@ -28,8 +28,8 @@ function projectRouteKey(project, projects) {
 }
 
 function findProjectByRouteKey(projects, routeKey) {
-  return projects.find((project) => projectRouteKey(project, projects) === routeKey) ||
-    projects.find((project) => project.slug === routeKey) ||
+  return projects.find((project) => project.slug === routeKey) ||
+    projects.find((project) => projectRouteKey(project, projects) === routeKey) ||
     projects.find((project) => project.id === routeKey);
 }
 
@@ -153,7 +153,7 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    if (hasHydrated && view === 'detail' && activeId && !activeProject) {
+    if (hasHydrated && !isInitializing && view === 'detail' && activeId && !activeProject) {
       console.log('[route] unresolved project route', {
         path: window.location.pathname,
         activeId,
@@ -169,7 +169,7 @@ export default function App() {
       setActiveId(null);
       setActiveTab('tasks');
     }
-  }, [hasHydrated, view, activeId, activeProject]);
+  }, [hasHydrated, isInitializing, view, activeId, activeProject, projects]);
 
   useEffect(() => {
     if (hasHydrated && view === 'detail' && activeProject) {
@@ -278,16 +278,22 @@ export default function App() {
 
   const updateProjectMeta = (projectId, updates) => {
     const projectUpdates = updates.name ? { ...updates, slug: slugify(updates.name) } : updates;
-    const nextProjects = projects.map((project) => (project.id === projectId ? { ...project, ...projectUpdates } : project));
+    const nextState = normalizeData({
+      ...data,
+      projects: data.projects.map((project) => (project.id === projectId ? { ...project, ...projectUpdates } : project)),
+    });
+    const nextProjects = nextState.projects;
     const nextProject = nextProjects.find((project) => project.id === projectId);
-    updateData((current) => ({
-      ...current,
-      projects: current.projects.map((project) => (project.id === projectId ? { ...project, ...projectUpdates } : project)),
-    }));
+
+    persist(nextState);
+
     if (view === 'detail' && nextProject && activeProject?.id === projectId) {
+      const nextRouteKey = projectRouteKey(nextProject, nextProjects);
       const nextPath = projectPath(nextProject, nextProjects, activeTab);
       window.history.replaceState(null, '', nextPath);
-      setActiveId(projectRouteKey(nextProject, nextProjects));
+      setView('detail');
+      setActiveId(nextRouteKey);
+      setActiveTab(activeTab);
     }
   };
 

@@ -61,6 +61,7 @@ This project follows the spirit of [Keep a Changelog](https://keepachangelog.com
 - Fixed hydration race so remote Supabase state is applied directly to React state before hydration completes.
 - Fixed project route matching to use normalized project slugs instead of deriving route identity directly from display names.
 - Fixed project rename persistence by saving project slugs locally and to Supabase.
+- Fixed project rename navigation so the app applies the renamed project state before moving to the new slug route.
 
 ### Verified
 - Installed Node.js/npm through winget when npm was missing.
