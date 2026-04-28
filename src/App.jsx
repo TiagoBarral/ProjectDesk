@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { cacheState, defaultData, loadRemoteState, loadState, mergeStateByUpdatedAt, normalizeData, saveState } from './lib/storage.js';
 import { logger } from './lib/logger.js';
 import Modal from './components/Modal.jsx';
@@ -81,6 +81,44 @@ export default function App() {
   const [activeTab, setActiveTab] = useState(initialRoute.activeTab);
   const [pendingRoute, setPendingRoute] = useState(null);
   const [modal, setModal] = useState(null);
+  const dataRef = useRef(defaultData);
+  const isRefreshingRef = useRef(false);
+
+  useEffect(() => {
+    dataRef.current = data;
+  }, [data]);
+
+  const refreshFromRemote = useCallback(async () => {
+    if (isRefreshingRef.current || isInitializing) return null;
+    if (!window.navigator.onLine) {
+      setSyncState('offline');
+      return false;
+    }
+
+    isRefreshingRef.current = true;
+    setSyncState('syncing');
+
+    try {
+      const remoteState = await loadRemoteState({ throwOnError: true });
+      if (!remoteState) {
+        setSyncState('synced');
+        return null;
+      }
+
+      const mergedState = mergeStateByUpdatedAt(dataRef.current, normalizeData(remoteState));
+      dataRef.current = mergedState;
+      setData(mergedState);
+      cacheState(mergedState);
+      setSyncState('synced');
+      return mergedState;
+    } catch (error) {
+      logger.error('Remote refresh error', error);
+      setSyncState('error');
+      return false;
+    } finally {
+      isRefreshingRef.current = false;
+    }
+  }, [isInitializing]);
 
   useEffect(() => {
     let alive = true;
@@ -116,6 +154,9 @@ export default function App() {
           projectCount: hydratedState?.projects?.length || 0,
           taskCount: countTasks(hydratedState?.projects),
         });
+        if (hydratedState) {
+          dataRef.current = hydratedState;
+        }
         setHasHydrated(true);
         setIsInitializing(false);
       }
@@ -126,6 +167,48 @@ export default function App() {
       alive = false;
     };
   }, []);
+
+  useEffect(() => {
+    if (!hasHydrated || isInitializing) return undefined;
+
+    const refreshWhenVisible = () => {
+      if (document.visibilityState === 'visible') {
+        refreshFromRemote();
+      }
+    };
+    const refreshOnFocus = () => refreshFromRemote();
+    const interval = window.setInterval(() => refreshFromRemote(), 20000);
+
+    refreshFromRemote();
+    window.addEventListener('focus', refreshOnFocus);
+    document.addEventListener('visibilitychange', refreshWhenVisible);
+
+    return () => {
+      window.clearInterval(interval);
+      window.removeEventListener('focus', refreshOnFocus);
+      document.removeEventListener('visibilitychange', refreshWhenVisible);
+    };
+  }, [hasHydrated, isInitializing, refreshFromRemote]);
+
+  useEffect(() => {
+    const handleOffline = () => setSyncState('offline');
+    const handleOnline = () => {
+      setSyncState('syncing');
+      refreshFromRemote();
+    };
+
+    window.addEventListener('offline', handleOffline);
+    window.addEventListener('online', handleOnline);
+
+    if (!window.navigator.onLine) {
+      setSyncState('offline');
+    }
+
+    return () => {
+      window.removeEventListener('offline', handleOffline);
+      window.removeEventListener('online', handleOnline);
+    };
+  }, [refreshFromRemote]);
 
   const projects = useMemo(() => visibleProjects(data.projects), [data.projects]);
   const activeProject = useMemo(
@@ -201,18 +284,27 @@ export default function App() {
 
   const persist = useCallback((nextState, changed) => {
     const normalized = normalizeData(nextState);
+    dataRef.current = normalized;
     setData(normalized);
 
     if (!hasHydrated || isInitializing) return;
 
-    setSyncState('saving');
+    if (!window.navigator.onLine) {
+      setSyncState('offline');
+      return;
+    }
+
+    setSyncState('syncing');
     saveState(normalized, { changed })
-      .then(() => setSyncState('saved'))
+      .then(() => refreshFromRemote())
+      .then((refreshResult) => {
+        if (refreshResult !== false) setSyncState('synced');
+      })
       .catch((error) => {
         logger.error('State persistence error', error);
-        setSyncState('saved');
+        setSyncState(window.navigator.onLine ? 'error' : 'offline');
       });
-  }, [hasHydrated, isInitializing]);
+  }, [hasHydrated, isInitializing, refreshFromRemote]);
 
   const updateData = useCallback((updater, changed) => {
     const nextState = typeof updater === 'function' ? updater(data) : updater;
@@ -407,7 +499,7 @@ export default function App() {
     }));
   };
 
-  const showSaved = () => setSyncState('saved');
+  const showSaved = () => setSyncState('synced');
 
   return (
     <>

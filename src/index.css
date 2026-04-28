@@ -18,7 +18,9 @@ button{appearance:none;}
 .sync-bar{position:fixed;bottom:calc(16px + env(safe-area-inset-bottom));right:16px;background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:6px 14px;font-size:12px;color:var(--text2);display:flex;align-items:center;gap:7px;box-shadow:0 4px 14px rgba(0,0,0,.08);opacity:0;transition:opacity .3s;pointer-events:none;z-index:100;}
 .sync-bar.visible{opacity:1;}
 .sync-dot{width:7px;height:7px;border-radius:50%;background:var(--green);flex-shrink:0;}
-.sync-dot.saving{background:var(--orange);animation:spin .6s linear infinite;border:2px solid var(--orange);border-top-color:transparent;border-radius:50%;width:8px;height:8px;}
+.sync-dot.syncing{background:var(--orange);animation:spin .6s linear infinite;border:2px solid var(--orange);border-top-color:transparent;border-radius:50%;width:8px;height:8px;}
+.sync-dot.error{background:#dc2626;}
+.sync-dot.offline{background:var(--text3);}
 .home{padding:40px 32px;max-width:980px;margin:0 auto;animation:fadein .2s ease;}
 .home-header{margin-bottom:36px;}
 .home-header h1{font-size:30px;font-weight:700;letter-spacing:-.5px;background:linear-gradient(135deg,#1d1d1f 30%,var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;color:transparent;}

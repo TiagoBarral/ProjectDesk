@@ -47,6 +47,8 @@ This project follows the spirit of [Keep a Changelog](https://keepachangelog.com
 - Added a small production-safe logger with dev-only debug/info logs and always-on warnings/errors.
 - Added frontend pagination for the priority task list with page controls, item counts, and rows-per-page options.
 - Added `deleted_at` soft-delete support for projects, tasks, and subtasks in the Supabase schema.
+- Added automatic Supabase refresh on startup, focus, visibility changes, periodic polling, and after successful local saves.
+- Added a small sync indicator for syncing, synced, error, and offline states.
 
 ### Changed
 - Replaced Claude/Cowork-specific save logic with a reusable data layer.
@@ -70,6 +72,7 @@ This project follows the spirit of [Keep a Changelog](https://keepachangelog.com
 - Fixed stale remote hydration overwrites by timestamping project/task edits and merging local and Supabase state by `updated_at`.
 - Fixed stale-device sync conflicts by keeping soft-delete tombstones, hiding deleted items in the UI, and only upserting rows when the local item event is newer than Supabase.
 - Fixed local ghost-state divergence by treating Supabase as authoritative during hydration unless a local-only item is explicitly marked `sync_pending`.
+- Fixed cross-device convergence delay so another device's changes can appear without manual refresh.
 
 ### Verified
 - Installed Node.js/npm through winget when npm was missing.

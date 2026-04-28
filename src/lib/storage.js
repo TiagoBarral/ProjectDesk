@@ -302,7 +302,7 @@ export async function loadState() {
   return loadLocalFallback();
 }
 
-export async function loadRemoteState() {
+export async function loadRemoteState({ throwOnError = false } = {}) {
   if (!isSupabaseConfigured) return null;
 
   try {
@@ -331,6 +331,7 @@ export async function loadRemoteState() {
     return normalized;
   } catch (error) {
     logger.error('Supabase load error', error);
+    if (throwOnError) throw error;
     return null;
   }
 }
@@ -368,12 +369,15 @@ export async function saveState(state, options = {}) {
   writeLocalState(normalized);
 
   if (isSupabaseConfigured) {
-    syncQueue = syncQueue
+    const syncTask = syncQueue
       .catch(() => undefined)
-      .then(() => syncStateToSupabase(normalized, options.changed))
-      .catch((error) => {
-        logger.error('Supabase save error', error);
-      });
+      .then(() => syncStateToSupabase(normalized, options.changed));
+
+    syncQueue = syncTask.catch((error) => {
+      logger.error('Supabase save error', error);
+    });
+
+    await syncTask;
   }
 
   return normalized;
