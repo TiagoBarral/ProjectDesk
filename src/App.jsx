@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { defaultData, loadRemoteState, loadState, normalizeData, saveState } from './lib/storage.js';
+import { cacheState, defaultData, loadRemoteState, loadState, normalizeData, saveState } from './lib/storage.js';
 import Modal from './components/Modal.jsx';
 import PriorityDashboard from './components/PriorityDashboard.jsx';
 import ProjectCard from './components/ProjectCard.jsx';
@@ -64,22 +64,33 @@ export default function App() {
   useEffect(() => {
     let alive = true;
     async function hydrateState() {
-      const localState = await loadState();
-      if (!alive) return;
-      setData(normalizeData(localState));
-      console.log('Loaded local state', localState);
+      try {
+        const localState = await loadState();
+        if (!alive) return;
+        const normalizedLocal = normalizeData(localState);
+        setData(normalizedLocal);
+        console.log('Loaded local state', normalizedLocal);
 
-      const remoteState = await loadRemoteState();
-      if (!alive) return;
-      console.log('Loaded remote Supabase state', remoteState);
-      const hasRemoteProjects = Boolean(remoteState?.projects?.length);
-      const hasRemoteTasks = Boolean(remoteState?.projects?.some((project) => project.tasks?.length));
-      if (hasRemoteProjects || hasRemoteTasks) {
-        setData(normalizeData(remoteState));
+        console.log('Fetching remote Supabase state');
+        const remoteState = await loadRemoteState();
+        if (!alive) return;
+
+        const normalizedRemote = remoteState ? normalizeData(remoteState) : null;
+        const hasRemoteProjects = Boolean(normalizedRemote?.projects?.length);
+        const hasRemoteTasks = Boolean(normalizedRemote?.projects?.some((project) => project.tasks?.length));
+        if (hasRemoteProjects || hasRemoteTasks) {
+          console.log('Applying remote Supabase state', normalizedRemote);
+          setData(normalizedRemote);
+          cacheState(normalizedRemote);
+        }
+      } catch (error) {
+        console.error('Hydration error', error);
+      } finally {
+        if (!alive) return;
+        console.log('Hydration complete');
+        setHasHydrated(true);
+        setIsInitializing(false);
       }
-      console.log('Hydration complete');
-      setHasHydrated(true);
-      setIsInitializing(false);
     }
 
     hydrateState();

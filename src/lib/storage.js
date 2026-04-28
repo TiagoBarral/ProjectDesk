@@ -330,6 +330,12 @@ export async function saveState(state) {
   return normalized;
 }
 
+export function cacheState(state) {
+  const normalized = normalizeData(state);
+  writeLocalState(normalized);
+  return normalized;
+}
+
 function readLocalState() {
   const raw = window.localStorage.getItem(STORAGE_KEY);
   if (!raw) return clone(defaultData);
