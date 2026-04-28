@@ -20,17 +20,16 @@ function slugify(value) {
 }
 
 function projectRouteKey(project, projects) {
-  const base = project.slug || slugify(project.name) || project.id;
-  const sameBase = projects.filter((item) => (item.slug || slugify(item.name) || item.id) === base);
-  if (sameBase.length <= 1) return base;
-  const index = sameBase.findIndex((item) => item.id === project.id);
-  return index <= 0 ? base : `${base}-${index + 1}`;
+  return project.slug || slugify(project.name) || project.id;
 }
 
-function findProjectByRouteKey(projects, routeKey) {
-  return projects.find((project) => project.slug === routeKey) ||
-    projects.find((project) => projectRouteKey(project, projects) === routeKey) ||
-    projects.find((project) => project.id === routeKey);
+function resolveProjectByRouteParam(projects, routeParam) {
+  if (!routeParam) return null;
+
+  return projects.find((project) => project.slug === routeParam) ||
+    projects.find((project) => slugify(project.name) === routeParam) ||
+    projects.find((project) => project.id === routeParam) ||
+    null;
 }
 
 function projectPath(project, projects, tab = 'tasks') {
@@ -40,14 +39,14 @@ function projectPath(project, projects, tab = 'tasks') {
 function routeFromLocation() {
   const parts = window.location.pathname.split('/').filter(Boolean).map(decodeURIComponent);
   if (parts[0] === 'projects' && parts[1]) {
-    return { view: 'detail', activeId: parts[1], activeTab: tabs.includes(parts[2]) ? parts[2] : 'tasks' };
+    return { view: 'detail', routeProjectParam: parts[1], activeTab: tabs.includes(parts[2]) ? parts[2] : 'tasks' };
   }
-  return { view: 'home', activeId: null, activeTab: 'tasks' };
+  return { view: 'home', routeProjectParam: null, activeTab: 'tasks' };
 }
 
-function routePath({ view, activeId, activeTab, project, projects }) {
+function routePath({ view, routeProjectParam, activeTab, project, projects }) {
   if (view === 'detail' && project && projects) return projectPath(project, projects, activeTab || 'tasks');
-  if (view === 'detail' && activeId) return `/projects/${encodeURIComponent(activeId)}/${activeTab || 'tasks'}`;
+  if (view === 'detail' && routeProjectParam) return `/projects/${encodeURIComponent(routeProjectParam)}/${activeTab || 'tasks'}`;
   return '/';
 }
 
@@ -58,8 +57,9 @@ export default function App() {
   const [isInitializing, setIsInitializing] = useState(true);
   const [syncState, setSyncState] = useState('idle');
   const [view, setView] = useState(initialRoute.view);
-  const [activeId, setActiveId] = useState(initialRoute.activeId);
+  const [routeProjectParam, setRouteProjectParam] = useState(initialRoute.routeProjectParam);
   const [activeTab, setActiveTab] = useState(initialRoute.activeTab);
+  const [pendingRoute, setPendingRoute] = useState(null);
   const [modal, setModal] = useState(null);
 
   useEffect(() => {
@@ -120,32 +120,42 @@ export default function App() {
   }, [data]);
 
   const projects = data.projects;
-  const activeProject = useMemo(() => findProjectByRouteKey(projects, activeId), [projects, activeId]);
+  const activeProject = useMemo(
+    () => resolveProjectByRouteParam(projects, routeProjectParam),
+    [projects, routeProjectParam],
+  );
+  const pendingRouteProject = useMemo(
+    () => pendingRoute ? resolveProjectByRouteParam(projects, pendingRoute.routeProjectParam) : null,
+    [projects, pendingRoute],
+  );
+  const detailProject = activeProject || pendingRouteProject;
 
   useEffect(() => {
     console.log('[route] current', {
       path: window.location.pathname,
       view,
-      activeId,
+      routeProjectParam,
+      pendingRoute,
       activeTab,
       filters: data.filters,
-      activeProject: activeProject ? {
-        id: activeProject.id,
-        slug: activeProject.slug,
-        routeKey: projectRouteKey(activeProject, projects),
-        name: activeProject.name,
-        tasks: activeProject.tasks?.length,
-        taskNames: activeProject.tasks?.map((task) => task.text),
+      activeProject: detailProject ? {
+        id: detailProject.id,
+        slug: detailProject.slug,
+        routeKey: projectRouteKey(detailProject, projects),
+        name: detailProject.name,
+        tasks: detailProject.tasks?.length,
+        taskNames: detailProject.tasks?.map((task) => task.text),
       } : null,
     });
-  }, [activeId, activeProject, activeTab, data.filters, projects, view]);
+  }, [routeProjectParam, pendingRoute, detailProject, activeTab, data.filters, projects, view]);
 
   useEffect(() => {
     const onPopState = () => {
       const nextRoute = routeFromLocation();
       setView(nextRoute.view);
-      setActiveId(nextRoute.activeId);
+      setRouteProjectParam(nextRoute.routeProjectParam);
       setActiveTab(nextRoute.activeTab);
+      setPendingRoute(null);
       setModal(null);
     };
     window.addEventListener('popstate', onPopState);
@@ -153,25 +163,58 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    if (hasHydrated && !isInitializing && view === 'detail' && activeId && !activeProject) {
+    if (pendingRoute) return;
+    if (!hasHydrated || isInitializing || view !== 'detail' || !routeProjectParam) return;
+
+    const resolvedProject = resolveProjectByRouteParam(projects, routeProjectParam);
+    console.log('[route] resolution check', {
+      routeProjectParam,
+      resolvedProjectId: resolvedProject?.id,
+      resolvedProjectName: resolvedProject?.name,
+      resolvedProjectSlug: resolvedProject?.slug,
+      availableProjects: projects.map((project) => ({
+        id: project.id,
+        name: project.name,
+        slug: project.slug,
+        generatedSlug: slugify(project.name),
+      })),
+    });
+
+    if (!resolvedProject) {
       console.log('[route] unresolved project route', {
         path: window.location.pathname,
-        activeId,
+        routeProjectParam,
         availableProjects: projects.map((project) => ({
           id: project.id,
           slug: project.slug,
-          routeKey: projectRouteKey(project, projects),
           name: project.name,
+          generatedSlug: slugify(project.name),
         })),
       });
       window.history.replaceState(null, '', '/');
       setView('home');
-      setActiveId(null);
+      setRouteProjectParam(null);
       setActiveTab('tasks');
     }
-  }, [hasHydrated, isInitializing, view, activeId, activeProject, projects]);
+  }, [hasHydrated, isInitializing, view, routeProjectParam, projects, pendingRoute]);
 
   useEffect(() => {
+    if (!pendingRoute) return;
+
+    const resolvedProject = resolveProjectByRouteParam(projects, pendingRoute.routeProjectParam);
+    if (!resolvedProject) return;
+
+    if (window.location.pathname !== pendingRoute.path) {
+      window.history.replaceState(null, '', pendingRoute.path);
+    }
+    setView('detail');
+    setRouteProjectParam(pendingRoute.routeProjectParam);
+    setActiveTab(pendingRoute.activeTab || 'tasks');
+    setPendingRoute(null);
+  }, [projects, pendingRoute]);
+
+  useEffect(() => {
+    if (pendingRoute) return;
     if (hasHydrated && view === 'detail' && activeProject) {
       const canonicalPath = projectPath(activeProject, projects, activeTab);
       if (window.location.pathname !== canonicalPath) {
@@ -186,10 +229,10 @@ export default function App() {
           },
         });
         window.history.replaceState(null, '', canonicalPath);
-        setActiveId(projectRouteKey(activeProject, projects));
+        setRouteProjectParam(projectRouteKey(activeProject, projects));
       }
     }
-  }, [hasHydrated, view, activeProject, projects, activeTab]);
+  }, [hasHydrated, view, activeProject, projects, activeTab, pendingRoute]);
 
   const persist = useCallback((nextState) => {
     const normalized = normalizeData(nextState);
@@ -228,8 +271,9 @@ export default function App() {
       window.history.pushState(null, '', path);
     }
     setView(nextRoute.view);
-    setActiveId(nextRoute.project ? projectRouteKey(nextRoute.project, projects) : nextRoute.activeId);
+    setRouteProjectParam(nextRoute.project ? projectRouteKey(nextRoute.project, projects) : nextRoute.routeProjectParam);
     setActiveTab(nextRoute.activeTab || 'tasks');
+    setPendingRoute(null);
     setModal(null);
   }, [projects]);
 
@@ -239,12 +283,12 @@ export default function App() {
   };
 
   const goHome = () => {
-    navigate({ view: 'home', activeId: null, activeTab: 'tasks' });
+    navigate({ view: 'home', routeProjectParam: null, activeTab: 'tasks' });
   };
 
   const switchTab = (tab) => {
-    if (!activeProject || !tabs.includes(tab)) return;
-    navigate({ view: 'detail', project: activeProject, activeTab: tab });
+    if (!detailProject || !tabs.includes(tab)) return;
+    navigate({ view: 'detail', project: detailProject, activeTab: tab });
   };
 
   const setFilters = (filters) => {
@@ -285,16 +329,14 @@ export default function App() {
     const nextProjects = nextState.projects;
     const nextProject = nextProjects.find((project) => project.id === projectId);
 
-    persist(nextState);
-
-    if (view === 'detail' && nextProject && activeProject?.id === projectId) {
-      const nextRouteKey = projectRouteKey(nextProject, nextProjects);
-      const nextPath = projectPath(nextProject, nextProjects, activeTab);
-      window.history.replaceState(null, '', nextPath);
-      setView('detail');
-      setActiveId(nextRouteKey);
-      setActiveTab(activeTab);
+    if (view === 'detail' && nextProject && detailProject?.id === projectId) {
+      const resolvedNextProject = resolveProjectByRouteParam(nextProjects, nextProject.slug || slugify(nextProject.name) || nextProject.id) || nextProject;
+      const nextRouteKey = projectRouteKey(resolvedNextProject, nextProjects);
+      const nextPath = projectPath(resolvedNextProject, nextProjects, activeTab);
+      setPendingRoute({ path: nextPath, routeProjectParam: nextRouteKey, activeTab });
     }
+
+    persist(nextState);
   };
 
   const updateTask = (projectId, taskId, updates) => {
@@ -369,7 +411,7 @@ export default function App() {
 
   return (
     <>
-      {view === 'home' || !activeProject ? (
+      {view === 'home' || !detailProject ? (
         <main className="home">
           <PriorityDashboard
             projects={projects}
@@ -389,24 +431,24 @@ export default function App() {
         </main>
       ) : (
         <ProjectDetail
-          project={activeProject}
+          project={detailProject}
           activeTab={activeTab}
           onBack={goHome}
           onTabChange={switchTab}
-          onUpdateProject={(updates) => updateProjectMeta(activeProject.id, updates)}
-          onToggleTask={(taskId) => toggleTask(activeProject.id, taskId)}
-          onToggleTaskExpanded={(taskId, expanded) => toggleTaskExpanded(activeProject.id, taskId, expanded)}
-          onDeleteTask={(taskId) => deleteTask(activeProject.id, taskId)}
-          onAddTask={(task) => addTask(activeProject.id, task)}
-          onUpdateTask={(taskId, updates) => updateTask(activeProject.id, taskId, updates)}
-          onToggleSubtask={(taskId, subtaskId) => toggleSubtask(activeProject.id, taskId, subtaskId)}
-          onAddSubtask={(taskId, text) => addSubtask(activeProject.id, taskId, text)}
-          onDeleteSubtask={(taskId, subtaskId) => deleteSubtask(activeProject.id, taskId, subtaskId)}
-          onUpdateSubtask={(taskId, subtaskId, updates) => updateSubtask(activeProject.id, taskId, subtaskId, updates)}
-          onUpdateNotes={(notes) => updateNotes(activeProject.id, notes)}
-          onAddFiles={(files) => addFiles(activeProject.id, files)}
-          onDeleteFile={(fileId) => deleteFile(activeProject.id, fileId)}
-          onUpdateFile={(fileId, updates) => updateFile(activeProject.id, fileId, updates)}
+          onUpdateProject={(updates) => updateProjectMeta(detailProject.id, updates)}
+          onToggleTask={(taskId) => toggleTask(detailProject.id, taskId)}
+          onToggleTaskExpanded={(taskId, expanded) => toggleTaskExpanded(detailProject.id, taskId, expanded)}
+          onDeleteTask={(taskId) => deleteTask(detailProject.id, taskId)}
+          onAddTask={(task) => addTask(detailProject.id, task)}
+          onUpdateTask={(taskId, updates) => updateTask(detailProject.id, taskId, updates)}
+          onToggleSubtask={(taskId, subtaskId) => toggleSubtask(detailProject.id, taskId, subtaskId)}
+          onAddSubtask={(taskId, text) => addSubtask(detailProject.id, taskId, text)}
+          onDeleteSubtask={(taskId, subtaskId) => deleteSubtask(detailProject.id, taskId, subtaskId)}
+          onUpdateSubtask={(taskId, subtaskId, updates) => updateSubtask(detailProject.id, taskId, subtaskId, updates)}
+          onUpdateNotes={(notes) => updateNotes(detailProject.id, notes)}
+          onAddFiles={(files) => addFiles(detailProject.id, files)}
+          onDeleteFile={(fileId) => deleteFile(detailProject.id, fileId)}
+          onUpdateFile={(fileId, updates) => updateFile(detailProject.id, fileId, updates)}
           onShowSaved={showSaved}
           openModal={openModal}
         />
