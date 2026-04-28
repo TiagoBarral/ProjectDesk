@@ -236,13 +236,25 @@ function ensureUuid(value, fallback) {
   return UUID_RE.test(raw) ? raw : stableUuid(raw || fallback);
 }
 
+function slugify(value) {
+  return String(value || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+}
+
 export function normalizeData(data) {
   const safe = data && Array.isArray(data.projects) ? data : defaultData;
   return {
     projects: safe.projects.map((project, projectIndex) => {
       const projectId = ensureUuid(project.id, `project:${projectIndex}:${project.name || ''}`);
+      const projectSlug = slugify(project.name) || slugify(project.slug) || projectId;
       return {
         id: projectId,
+        slug: projectSlug,
         name: project.name,
         color: project.color,
         status: project.status || 'planning',

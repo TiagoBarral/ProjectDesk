@@ -20,8 +20,8 @@ function slugify(value) {
 }
 
 function projectRouteKey(project, projects) {
-  const base = slugify(project.name) || project.id;
-  const sameBase = projects.filter((item) => (slugify(item.name) || item.id) === base);
+  const base = project.slug || slugify(project.name) || project.id;
+  const sameBase = projects.filter((item) => (item.slug || slugify(item.name) || item.id) === base);
   if (sameBase.length <= 1) return base;
   const index = sameBase.findIndex((item) => item.id === project.id);
   return index <= 0 ? base : `${base}-${index + 1}`;
@@ -29,6 +29,7 @@ function projectRouteKey(project, projects) {
 
 function findProjectByRouteKey(projects, routeKey) {
   return projects.find((project) => projectRouteKey(project, projects) === routeKey) ||
+    projects.find((project) => project.slug === routeKey) ||
     projects.find((project) => project.id === routeKey);
 }
 
@@ -130,7 +131,8 @@ export default function App() {
       filters: data.filters,
       activeProject: activeProject ? {
         id: activeProject.id,
-        slug: projectRouteKey(activeProject, projects),
+        slug: activeProject.slug,
+        routeKey: projectRouteKey(activeProject, projects),
         name: activeProject.name,
         tasks: activeProject.tasks?.length,
         taskNames: activeProject.tasks?.map((task) => task.text),
@@ -157,7 +159,8 @@ export default function App() {
         activeId,
         availableProjects: projects.map((project) => ({
           id: project.id,
-          slug: projectRouteKey(project, projects),
+          slug: project.slug,
+          routeKey: projectRouteKey(project, projects),
           name: project.name,
         })),
       });
@@ -177,7 +180,8 @@ export default function App() {
           to: canonicalPath,
           activeProject: {
             id: activeProject.id,
-            slug: projectRouteKey(activeProject, projects),
+            slug: activeProject.slug,
+            routeKey: projectRouteKey(activeProject, projects),
             name: activeProject.name,
           },
         });
