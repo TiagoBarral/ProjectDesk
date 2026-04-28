@@ -45,6 +45,7 @@ This project follows the spirit of [Keep a Changelog](https://keepachangelog.com
 - Added project journal rules to `AGENTS.md`.
 - Added a phased product roadmap to `todo.md`.
 - Added a small production-safe logger with dev-only debug/info logs and always-on warnings/errors.
+- Added frontend pagination for the priority task list with page controls, item counts, and rows-per-page options.
 
 ### Changed
 - Replaced Claude/Cowork-specific save logic with a reusable data layer.
