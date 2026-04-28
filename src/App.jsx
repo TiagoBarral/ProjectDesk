@@ -118,6 +118,9 @@ export default function App() {
     });
   }, [data]);
 
+  const projects = data.projects;
+  const activeProject = useMemo(() => findProjectByRouteKey(projects, activeId), [projects, activeId]);
+
   useEffect(() => {
     console.log('[route] current', {
       path: window.location.pathname,
@@ -146,9 +149,6 @@ export default function App() {
     window.addEventListener('popstate', onPopState);
     return () => window.removeEventListener('popstate', onPopState);
   }, []);
-
-  const projects = data.projects;
-  const activeProject = useMemo(() => findProjectByRouteKey(projects, activeId), [projects, activeId]);
 
   useEffect(() => {
     if (hasHydrated && view === 'detail' && activeId && !activeProject) {
