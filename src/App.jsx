@@ -53,7 +53,8 @@ function routePath({ view, activeId, activeTab, project, projects }) {
 export default function App() {
   const initialRoute = routeFromLocation();
   const [data, setData] = useState(defaultData);
-  const [hydrated, setHydrated] = useState(false);
+  const [hasHydrated, setHasHydrated] = useState(false);
+  const [isInitializing, setIsInitializing] = useState(true);
   const [syncState, setSyncState] = useState('idle');
   const [view, setView] = useState(initialRoute.view);
   const [activeId, setActiveId] = useState(initialRoute.activeId);
@@ -66,13 +67,19 @@ export default function App() {
       const localState = await loadState();
       if (!alive) return;
       setData(normalizeData(localState));
+      console.log('Loaded local state', localState);
 
       const remoteState = await loadRemoteState();
       if (!alive) return;
-      if (remoteState?.projects?.length) {
+      console.log('Loaded remote Supabase state', remoteState);
+      const hasRemoteProjects = Boolean(remoteState?.projects?.length);
+      const hasRemoteTasks = Boolean(remoteState?.projects?.some((project) => project.tasks?.length));
+      if (hasRemoteProjects || hasRemoteTasks) {
         setData(normalizeData(remoteState));
       }
-      setHydrated(true);
+      console.log('Hydration complete');
+      setHasHydrated(true);
+      setIsInitializing(false);
     }
 
     hydrateState();
@@ -97,29 +104,29 @@ export default function App() {
   const activeProject = useMemo(() => findProjectByRouteKey(projects, activeId), [projects, activeId]);
 
   useEffect(() => {
-    if (hydrated && view === 'detail' && activeId && !activeProject) {
+    if (hasHydrated && view === 'detail' && activeId && !activeProject) {
       window.history.replaceState(null, '', '/');
       setView('home');
       setActiveId(null);
       setActiveTab('tasks');
     }
-  }, [hydrated, view, activeId, activeProject]);
+  }, [hasHydrated, view, activeId, activeProject]);
 
   useEffect(() => {
-    if (hydrated && view === 'detail' && activeProject) {
+    if (hasHydrated && view === 'detail' && activeProject) {
       const canonicalPath = projectPath(activeProject, projects, activeTab);
       if (window.location.pathname !== canonicalPath) {
         window.history.replaceState(null, '', canonicalPath);
         setActiveId(projectRouteKey(activeProject, projects));
       }
     }
-  }, [hydrated, view, activeProject, projects, activeTab]);
+  }, [hasHydrated, view, activeProject, projects, activeTab]);
 
   const persist = useCallback((nextState) => {
     const normalized = normalizeData(nextState);
     setData(normalized);
 
-    if (!hydrated) return;
+    if (!hasHydrated || isInitializing) return;
 
     setSyncState('saving');
     saveState(normalized)
@@ -128,7 +135,7 @@ export default function App() {
         console.error('State persistence error', error);
         setSyncState('saved');
       });
-  }, [hydrated]);
+  }, [hasHydrated, isInitializing]);
 
   const updateData = useCallback((updater) => {
     const nextState = typeof updater === 'function' ? updater(data) : updater;

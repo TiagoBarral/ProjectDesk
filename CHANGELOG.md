@@ -57,6 +57,7 @@ This project follows the spirit of [Keep a Changelog](https://keepachangelog.com
 
 ### Fixed
 - Fixed Supabase save sync to upsert exact `projects`, `tasks`, and `subtasks` rows with required foreign keys.
+- Fixed deployed app refresh behavior so startup loads localStorage first, then hydrates from Supabase without saving local state back during initialization.
 
 ### Verified
 - Installed Node.js/npm through winget when npm was missing.

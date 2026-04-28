@@ -284,22 +284,26 @@ export async function loadRemoteState() {
   if (!isSupabaseConfigured) return null;
 
   try {
-    const [projectsResult, tasksResult, subtasksResult, filesResult] = await Promise.all([
+    const [projectsResult, tasksResult, subtasksResult] = await Promise.all([
       supabase.from('projects').select('*'),
       supabase.from('tasks').select('*'),
       supabase.from('subtasks').select('*'),
-      supabase.from('files').select('*'),
     ]);
 
-    const firstError = [projectsResult, tasksResult, subtasksResult, filesResult].find((result) => result.error)?.error;
+    const firstError = [projectsResult, tasksResult, subtasksResult].find((result) => result.error)?.error;
     if (firstError) throw firstError;
     if (!projectsResult.data?.length) return null;
+
+    const filesResult = await supabase.from('files').select('*');
+    if (filesResult.error) {
+      console.error('Supabase files load error', filesResult.error);
+    }
 
     const remoteState = composeData({
       projects: projectsResult.data || [],
       tasks: tasksResult.data || [],
       subtasks: subtasksResult.data || [],
-      files: filesResult.data || [],
+      files: filesResult.error ? [] : filesResult.data || [],
     });
     const normalized = normalizeData(remoteState);
     writeLocalState(normalized);
