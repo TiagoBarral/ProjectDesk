@@ -69,6 +69,10 @@ export default function App() {
         if (!alive) return;
         const normalizedLocal = normalizeData(localState);
         setData(normalizedLocal);
+        console.log('[hydrate] local', {
+          projects: localState?.projects?.length,
+          tasks: localState?.projects?.flatMap((project) => project.tasks || []).length,
+        });
         console.log('Loaded local state', normalizedLocal);
 
         console.log('Fetching remote Supabase state');
@@ -76,11 +80,18 @@ export default function App() {
         if (!alive) return;
 
         const normalizedRemote = remoteState ? normalizeData(remoteState) : null;
+        console.log('[hydrate] remote', {
+          projects: remoteState?.projects?.length,
+          tasks: remoteState?.projects?.flatMap((project) => project.tasks || []).length,
+          taskNames: remoteState?.projects?.flatMap((project) => project.tasks || []).map((task) => task.text),
+        });
         const hasRemoteProjects = Boolean(normalizedRemote?.projects?.length);
         const hasRemoteTasks = Boolean(normalizedRemote?.projects?.some((project) => project.tasks?.length));
         if (hasRemoteProjects || hasRemoteTasks) {
+          console.log('[hydrate] applying remote');
           console.log('Applying remote Supabase state', normalizedRemote);
           setData(normalizedRemote);
+          console.log('[hydrate] applied remote');
           cacheState(normalizedRemote);
         }
       } catch (error) {
@@ -98,6 +109,14 @@ export default function App() {
       alive = false;
     };
   }, []);
+
+  useEffect(() => {
+    console.log('[state] current', {
+      projects: data?.projects?.length,
+      tasks: data?.projects?.flatMap((project) => project.tasks || []).length,
+      taskNames: data?.projects?.flatMap((project) => project.tasks || []).map((task) => task.text),
+    });
+  }, [data]);
 
   useEffect(() => {
     const onPopState = () => {

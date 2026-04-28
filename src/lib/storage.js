@@ -299,6 +299,12 @@ export async function loadRemoteState() {
       console.error('Supabase files load error', filesResult.error);
     }
 
+    console.log('[remote rows]', {
+      projects: projectsResult.data?.length,
+      tasks: tasksResult.data?.length,
+      subtasks: subtasksResult.data?.length,
+    });
+
     const remoteState = composeData({
       projects: projectsResult.data || [],
       tasks: tasksResult.data || [],
