@@ -261,6 +261,7 @@ export function normalizeData(data) {
         status: project.status || 'planning',
         notes: project.notes || '',
         updated_at: project.updated_at || null,
+        deleted_at: project.deleted_at || null,
         files: Array.isArray(project.files) ? project.files : [],
         tasks: (project.tasks || []).map((task, taskIndex) => {
           const taskId = ensureUuid(task.id, `task:${projectId}:${taskIndex}:${task.text || ''}`);
@@ -272,10 +273,13 @@ export function normalizeData(data) {
             done: Boolean(task.done),
             expanded: Boolean(task.expanded),
             updated_at: task.updated_at || null,
+            deleted_at: task.deleted_at || null,
             subtasks: (task.subtasks || []).map((subtask, subtaskIndex) => ({
               id: ensureUuid(subtask.id, `subtask:${taskId}:${subtaskIndex}:${subtask.text || ''}`),
               text: subtask.text || '',
               done: Boolean(subtask.done),
+              updated_at: subtask.updated_at || null,
+              deleted_at: subtask.deleted_at || null,
             })),
           };
         }),
@@ -342,7 +346,7 @@ export function mergeStateByUpdatedAt(localState, remoteState) {
       if (!localProject) return remoteProject;
       if (!remoteProject) return localProject;
 
-      const projectBase = isNewer(localProject.updated_at, remoteProject.updated_at) ? localProject : remoteProject;
+      const projectBase = isNewerEvent(localProject, remoteProject) ? localProject : remoteProject;
       return {
         ...projectBase,
         tasks: mergeTasksByUpdatedAt(localProject.tasks || [], remoteProject.tasks || []),
@@ -352,14 +356,14 @@ export function mergeStateByUpdatedAt(localState, remoteState) {
   });
 }
 
-export async function saveState(state) {
+export async function saveState(state, options = {}) {
   const normalized = normalizeData(state);
   writeLocalState(normalized);
 
   if (isSupabaseConfigured) {
     syncQueue = syncQueue
       .catch(() => undefined)
-      .then(() => syncStateToSupabase(normalized))
+      .then(() => syncStateToSupabase(normalized, options.changed))
       .catch((error) => {
         logger.error('Supabase save error', error);
       });
@@ -407,6 +411,7 @@ function composeData({ projects, tasks, subtasks, files }) {
       status: project.status || 'active',
       notes: project.notes || '',
       updated_at: project.updated_at || null,
+      deleted_at: project.deleted_at || null,
       files: (filesByProject[project.id] || []).map((file) => ({
         id: file.id,
         name: file.name,
@@ -425,10 +430,13 @@ function composeData({ projects, tasks, subtasks, files }) {
         done: Boolean(task.done ?? task.completed),
         expanded: Boolean(task.expanded),
         updated_at: task.updated_at || null,
+        deleted_at: task.deleted_at || null,
         subtasks: (subtasksByTask[task.id] || []).map((subtask) => ({
           id: subtask.id,
           text: subtask.text || subtask.title || '',
           done: Boolean(subtask.done ?? subtask.completed),
+          updated_at: subtask.updated_at || null,
+          deleted_at: subtask.deleted_at || null,
         })),
       })),
     })),
@@ -446,12 +454,34 @@ function mergeTasksByUpdatedAt(localTasks, remoteTasks) {
     const remoteTask = remoteById.get(taskId);
     if (!localTask) return remoteTask;
     if (!remoteTask) return localTask;
-    return isNewer(localTask.updated_at, remoteTask.updated_at) ? localTask : remoteTask;
+    const taskBase = isNewerEvent(localTask, remoteTask) ? localTask : remoteTask;
+    return {
+      ...taskBase,
+      subtasks: mergeItemsByUpdatedAt(localTask.subtasks || [], remoteTask.subtasks || []),
+    };
   });
 }
 
-function isNewer(leftUpdatedAt, rightUpdatedAt) {
-  return timestampValue(leftUpdatedAt) > timestampValue(rightUpdatedAt);
+function mergeItemsByUpdatedAt(localItems, remoteItems) {
+  const localById = new Map(localItems.map((item) => [item.id, item]));
+  const remoteById = new Map(remoteItems.map((item) => [item.id, item]));
+  const itemIds = new Set([...localById.keys(), ...remoteById.keys()]);
+
+  return Array.from(itemIds).map((itemId) => {
+    const localItem = localById.get(itemId);
+    const remoteItem = remoteById.get(itemId);
+    if (!localItem) return remoteItem;
+    if (!remoteItem) return localItem;
+    return isNewerEvent(localItem, remoteItem) ? localItem : remoteItem;
+  });
+}
+
+function isNewerEvent(leftItem, rightItem) {
+  return eventTimestamp(leftItem) > eventTimestamp(rightItem);
+}
+
+function eventTimestamp(item) {
+  return Math.max(timestampValue(item?.updated_at), timestampValue(item?.deleted_at));
 }
 
 function timestampValue(value) {
@@ -467,22 +497,29 @@ function groupBy(items, key) {
   }, {});
 }
 
-async function syncStateToSupabase(data) {
-  const rows = flattenData(data);
+async function syncStateToSupabase(data, changed) {
+  const rows = flattenData(data, changed);
 
   logger.info('sync: saving', {
     projectCount: rows.projects.length,
     taskCount: rows.tasks.length,
   });
 
-  await upsertRows('projects', rows.projects);
-  await upsertRows('tasks', rows.tasks);
-  await upsertRows('subtasks', rows.subtasks);
+  const results = await Promise.all([
+    upsertFreshRows('projects', rows.projects),
+    upsertFreshRows('tasks', rows.tasks),
+    upsertFreshRows('subtasks', rows.subtasks),
+  ]);
 
-  logger.info('sync: saved');
+  logger.info('sync: saved', {
+    projectCount: results[0],
+    taskCount: results[1],
+    subtaskCount: results[2],
+  });
 }
 
-function flattenData(data) {
+function flattenData(data, changed) {
+  const scope = createSyncScope(changed);
   const projects = [];
   const tasks = [];
   const subtasks = [];
@@ -490,38 +527,83 @@ function flattenData(data) {
   data.projects.forEach((project, projectIndex) => {
     const projectId = ensureUuid(project.id, `project:${projectIndex}:${project.name || ''}`);
     const projectSlug = project.slug || slugify(project.name) || projectId;
-    projects.push({
-      id: projectId,
-      slug: projectSlug,
-      name: project.name,
-      color: project.color,
-      status: project.status,
-      notes: project.notes || '',
-      updated_at: project.updated_at || null,
-    });
+    if (shouldSync(scope, 'projects', projectId)) {
+      projects.push({
+        id: projectId,
+        slug: projectSlug,
+        name: project.name,
+        color: project.color,
+        status: project.status,
+        notes: project.notes || '',
+        updated_at: project.updated_at || null,
+        deleted_at: project.deleted_at || null,
+      });
+    }
     project.tasks.forEach((task, taskIndex) => {
       const taskId = ensureUuid(task.id, `task:${projectId}:${taskIndex}:${task.text || ''}`);
-      tasks.push({
-        id: taskId,
-        project_id: projectId,
-        text: task.text,
-        done: task.done,
-        importance: task.importance,
-        priority: task.priority,
-        updated_at: task.updated_at || null,
-      });
-      task.subtasks.forEach((subtask, subtaskIndex) => {
-        subtasks.push({
-          id: ensureUuid(subtask.id, `subtask:${taskId}:${subtaskIndex}:${subtask.text || ''}`),
-          task_id: taskId,
-          text: subtask.text,
-          done: subtask.done,
+      if (shouldSync(scope, 'tasks', taskId)) {
+        tasks.push({
+          id: taskId,
+          project_id: projectId,
+          text: task.text,
+          done: task.done,
+          importance: task.importance,
+          priority: task.priority,
+          updated_at: task.updated_at || null,
+          deleted_at: task.deleted_at || null,
         });
+      }
+      task.subtasks.forEach((subtask, subtaskIndex) => {
+        const subtaskId = ensureUuid(subtask.id, `subtask:${taskId}:${subtaskIndex}:${subtask.text || ''}`);
+        if (shouldSync(scope, 'subtasks', subtaskId)) {
+          subtasks.push({
+            id: subtaskId,
+            task_id: taskId,
+            text: subtask.text,
+            done: subtask.done,
+            updated_at: subtask.updated_at || null,
+            deleted_at: subtask.deleted_at || null,
+          });
+        }
       });
     });
   });
 
   return { projects, tasks, subtasks };
+}
+
+function createSyncScope(changed) {
+  if (!changed) return null;
+  return {
+    projects: new Set(changed.projects || []),
+    tasks: new Set(changed.tasks || []),
+    subtasks: new Set(changed.subtasks || []),
+  };
+}
+
+function shouldSync(scope, key, id) {
+  return !scope || scope[key].has(id);
+}
+
+async function upsertFreshRows(table, rows) {
+  if (!rows.length) return 0;
+
+  const remoteRows = await fetchRemoteFreshness(table, rows.map((row) => row.id));
+  const freshRows = rows.filter((row) => {
+    const remoteRow = remoteRows.get(row.id);
+    return !remoteRow || eventTimestamp(row) > eventTimestamp(remoteRow);
+  });
+
+  await upsertRows(table, freshRows);
+  return freshRows.length;
+}
+
+async function fetchRemoteFreshness(table, ids) {
+  const { data, error } = await supabase.from(table).select('id,updated_at,deleted_at').in('id', ids);
+  if (error) {
+    throw error;
+  }
+  return new Map((data || []).map((row) => [row.id, row]));
 }
 
 async function upsertRows(table, rows) {

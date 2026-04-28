@@ -56,6 +56,20 @@ function countTasks(projects = []) {
   return projects.reduce((total, project) => total + (project.tasks?.length || 0), 0);
 }
 
+function visibleProjects(projects = []) {
+  return projects
+    .filter((project) => !project.deleted_at)
+    .map((project) => ({
+      ...project,
+      tasks: (project.tasks || [])
+        .filter((task) => !task.deleted_at)
+        .map((task) => ({
+          ...task,
+          subtasks: (task.subtasks || []).filter((subtask) => !subtask.deleted_at),
+        })),
+    }));
+}
+
 export default function App() {
   const initialRoute = routeFromLocation();
   const [data, setData] = useState(defaultData);
@@ -113,7 +127,7 @@ export default function App() {
     };
   }, []);
 
-  const projects = data.projects;
+  const projects = useMemo(() => visibleProjects(data.projects), [data.projects]);
   const activeProject = useMemo(
     () => resolveProjectByRouteParam(projects, routeProjectParam),
     [projects, routeProjectParam],
@@ -185,14 +199,14 @@ export default function App() {
     }
   }, [hasHydrated, view, activeProject, projects, activeTab, pendingRoute]);
 
-  const persist = useCallback((nextState) => {
+  const persist = useCallback((nextState, changed) => {
     const normalized = normalizeData(nextState);
     setData(normalized);
 
     if (!hasHydrated || isInitializing) return;
 
     setSyncState('saving');
-    saveState(normalized)
+    saveState(normalized, { changed })
       .then(() => setSyncState('saved'))
       .catch((error) => {
         logger.error('State persistence error', error);
@@ -200,19 +214,19 @@ export default function App() {
       });
   }, [hasHydrated, isInitializing]);
 
-  const updateData = useCallback((updater) => {
+  const updateData = useCallback((updater, changed) => {
     const nextState = typeof updater === 'function' ? updater(data) : updater;
-    persist(nextState);
+    persist(nextState, changed);
   }, [data, persist]);
 
-  const updateProject = useCallback((projectId, updater) => {
+  const updateProject = useCallback((projectId, updater, changed = { projects: [projectId] }) => {
     updateData((current) => ({
       ...current,
       projects: current.projects.map((project) => {
         if (project.id !== projectId) return project;
         return { ...updater(project), updated_at: nowIso() };
       }),
-    }));
+    }), changed);
   }, [updateData]);
 
   const openModal = useCallback((renderModal) => {
@@ -246,32 +260,42 @@ export default function App() {
   };
 
   const setFilters = (filters) => {
-    updateData((current) => ({ ...current, filters: { ...current.filters, ...filters } }));
+    updateData((current) => ({ ...current, filters: { ...current.filters, ...filters } }), { projects: [], tasks: [], subtasks: [] });
   };
 
   const toggleTask = (projectId, taskId) => {
+    const timestamp = nowIso();
     updateProject(projectId, (project) => ({
       ...project,
-      tasks: project.tasks.map((task) => (task.id === taskId ? { ...task, done: !task.done, updated_at: nowIso() } : task)),
-    }));
+      tasks: project.tasks.map((task) => (task.id === taskId ? { ...task, done: !task.done, updated_at: timestamp } : task)),
+    }), { projects: [projectId], tasks: [taskId] });
   };
 
   const toggleTaskExpanded = (projectId, taskId, expanded) => {
+    const timestamp = nowIso();
     updateProject(projectId, (project) => ({
       ...project,
-      tasks: project.tasks.map((task) => (task.id === taskId ? { ...task, expanded: expanded ?? !task.expanded, updated_at: nowIso() } : task)),
-    }));
+      tasks: project.tasks.map((task) => (task.id === taskId ? { ...task, expanded: expanded ?? !task.expanded, updated_at: timestamp } : task)),
+    }), { projects: [projectId], tasks: [taskId] });
   };
 
   const deleteTask = (projectId, taskId) => {
-    updateProject(projectId, (project) => ({ ...project, tasks: project.tasks.filter((task) => task.id !== taskId) }));
+    const timestamp = nowIso();
+    updateProject(projectId, (project) => ({
+      ...project,
+      tasks: project.tasks.map((task) => (
+        task.id === taskId ? { ...task, deleted_at: timestamp, updated_at: timestamp } : task
+      )),
+    }), { projects: [projectId], tasks: [taskId] });
   };
 
   const addTask = (projectId, task) => {
+    const timestamp = nowIso();
+    const taskId = uid();
     updateProject(projectId, (project) => ({
       ...project,
-      tasks: [...project.tasks, { id: uid(), text: task.text, priority: task.priority, importance: task.importance, done: false, expanded: false, updated_at: nowIso(), subtasks: [] }],
-    }));
+      tasks: [...project.tasks, { id: taskId, text: task.text, priority: task.priority, importance: task.importance, done: false, expanded: false, updated_at: timestamp, deleted_at: null, subtasks: [] }],
+    }), { projects: [projectId], tasks: [taskId] });
   };
 
   const updateProjectMeta = (projectId, updates) => {
@@ -290,60 +314,68 @@ export default function App() {
       setPendingRoute({ path: nextPath, routeProjectParam: nextRouteKey, activeTab });
     }
 
-    persist(nextState);
+    persist(nextState, { projects: [projectId] });
   };
 
   const updateTask = (projectId, taskId, updates) => {
+    const timestamp = nowIso();
     updateProject(projectId, (project) => ({
       ...project,
-      tasks: project.tasks.map((task) => (task.id === taskId ? { ...task, ...updates, updated_at: nowIso() } : task)),
-    }));
+      tasks: project.tasks.map((task) => (task.id === taskId ? { ...task, ...updates, updated_at: timestamp } : task)),
+    }), { projects: [projectId], tasks: [taskId] });
   };
 
   const toggleSubtask = (projectId, taskId, subtaskId) => {
+    const timestamp = nowIso();
     updateProject(projectId, (project) => ({
       ...project,
       tasks: project.tasks.map((task) => task.id === taskId ? {
         ...task,
-        updated_at: nowIso(),
-        subtasks: task.subtasks.map((subtask) => (subtask.id === subtaskId ? { ...subtask, done: !subtask.done } : subtask)),
+        updated_at: timestamp,
+        subtasks: task.subtasks.map((subtask) => (subtask.id === subtaskId ? { ...subtask, done: !subtask.done, updated_at: timestamp } : subtask)),
       } : task),
-    }));
+    }), { projects: [projectId], tasks: [taskId], subtasks: [subtaskId] });
   };
 
   const addSubtask = (projectId, taskId, text) => {
     if (!text.trim()) return;
+    const timestamp = nowIso();
+    const subtaskId = uid();
     updateProject(projectId, (project) => ({
       ...project,
       tasks: project.tasks.map((task) => task.id === taskId ? {
         ...task,
         expanded: true,
-        updated_at: nowIso(),
-        subtasks: [...task.subtasks, { id: uid(), text: text.trim(), done: false }],
+        updated_at: timestamp,
+        subtasks: [...task.subtasks, { id: subtaskId, text: text.trim(), done: false, updated_at: timestamp, deleted_at: null }],
       } : task),
-    }));
+    }), { projects: [projectId], tasks: [taskId], subtasks: [subtaskId] });
   };
 
   const deleteSubtask = (projectId, taskId, subtaskId) => {
+    const timestamp = nowIso();
     updateProject(projectId, (project) => ({
       ...project,
       tasks: project.tasks.map((task) => task.id === taskId ? {
         ...task,
-        updated_at: nowIso(),
-        subtasks: task.subtasks.filter((subtask) => subtask.id !== subtaskId),
+        updated_at: timestamp,
+        subtasks: task.subtasks.map((subtask) => (
+          subtask.id === subtaskId ? { ...subtask, deleted_at: timestamp, updated_at: timestamp } : subtask
+        )),
       } : task),
-    }));
+    }), { projects: [projectId], tasks: [taskId], subtasks: [subtaskId] });
   };
 
   const updateSubtask = (projectId, taskId, subtaskId, updates) => {
+    const timestamp = nowIso();
     updateProject(projectId, (project) => ({
       ...project,
       tasks: project.tasks.map((task) => task.id === taskId ? {
         ...task,
-        updated_at: nowIso(),
-        subtasks: task.subtasks.map((subtask) => (subtask.id === subtaskId ? { ...subtask, ...updates } : subtask)),
+        updated_at: timestamp,
+        subtasks: task.subtasks.map((subtask) => (subtask.id === subtaskId ? { ...subtask, ...updates, updated_at: timestamp } : subtask)),
       } : task),
-    }));
+    }), { projects: [projectId], tasks: [taskId], subtasks: [subtaskId] });
   };
 
   const updateNotes = (projectId, notes) => {

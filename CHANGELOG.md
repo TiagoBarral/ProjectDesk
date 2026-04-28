@@ -46,6 +46,7 @@ This project follows the spirit of [Keep a Changelog](https://keepachangelog.com
 - Added a phased product roadmap to `todo.md`.
 - Added a small production-safe logger with dev-only debug/info logs and always-on warnings/errors.
 - Added frontend pagination for the priority task list with page controls, item counts, and rows-per-page options.
+- Added `deleted_at` soft-delete support for projects, tasks, and subtasks in the Supabase schema.
 
 ### Changed
 - Replaced Claude/Cowork-specific save logic with a reusable data layer.
@@ -67,6 +68,7 @@ This project follows the spirit of [Keep a Changelog](https://keepachangelog.com
 - Fixed project rename navigation so the app applies the renamed project state before moving to the new slug route.
 - Fixed project rename route races by pausing route fallback while the renamed project route is pending.
 - Fixed stale remote hydration overwrites by timestamping project/task edits and merging local and Supabase state by `updated_at`.
+- Fixed stale-device sync conflicts by keeping soft-delete tombstones, hiding deleted items in the UI, and only upserting rows when the local item event is newer than Supabase.
 
 ### Verified
 - Installed Node.js/npm through winget when npm was missing.

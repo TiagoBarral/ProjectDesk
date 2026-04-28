@@ -11,7 +11,8 @@ create table if not exists public.projects (
   notes text not null default '',
   sort_order integer not null default 0,
   created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now()
+  updated_at timestamptz not null default now(),
+  deleted_at timestamptz
 );
 
 create table if not exists public.tasks (
@@ -24,7 +25,8 @@ create table if not exists public.tasks (
   expanded boolean not null default false,
   sort_order integer not null default 0,
   created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now()
+  updated_at timestamptz not null default now(),
+  deleted_at timestamptz
 );
 
 create table if not exists public.subtasks (
@@ -34,7 +36,8 @@ create table if not exists public.subtasks (
   done boolean not null default false,
   sort_order integer not null default 0,
   created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now()
+  updated_at timestamptz not null default now(),
+  deleted_at timestamptz
 );
 
 create table if not exists public.files (
