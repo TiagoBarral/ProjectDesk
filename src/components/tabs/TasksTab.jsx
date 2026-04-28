@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import ImportanceBadge from '../ImportanceBadge.jsx';
 import { priorityClass } from '../helpers.js';
 
@@ -18,6 +18,17 @@ export default function TasksTab({
 }) {
   const openTasks = project.tasks.filter((task) => !task.done);
   const doneTasks = project.tasks.filter((task) => task.done);
+
+  useEffect(() => {
+    console.log('[render] tasks tab', {
+      projectId: project.id,
+      projectName: project.name,
+      count: project.tasks.length,
+      openCount: openTasks.length,
+      doneCount: doneTasks.length,
+      taskNames: project.tasks.map((task) => task.text),
+    });
+  }, [doneTasks.length, openTasks.length, project.id, project.name, project.tasks]);
 
   return (
     <>

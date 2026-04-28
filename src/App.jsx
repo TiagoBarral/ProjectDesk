@@ -119,6 +119,23 @@ export default function App() {
   }, [data]);
 
   useEffect(() => {
+    console.log('[route] current', {
+      path: window.location.pathname,
+      view,
+      activeId,
+      activeTab,
+      filters: data.filters,
+      activeProject: activeProject ? {
+        id: activeProject.id,
+        slug: projectRouteKey(activeProject, projects),
+        name: activeProject.name,
+        tasks: activeProject.tasks?.length,
+        taskNames: activeProject.tasks?.map((task) => task.text),
+      } : null,
+    });
+  }, [activeId, activeProject, activeTab, data.filters, projects, view]);
+
+  useEffect(() => {
     const onPopState = () => {
       const nextRoute = routeFromLocation();
       setView(nextRoute.view);
@@ -135,6 +152,15 @@ export default function App() {
 
   useEffect(() => {
     if (hasHydrated && view === 'detail' && activeId && !activeProject) {
+      console.log('[route] unresolved project route', {
+        path: window.location.pathname,
+        activeId,
+        availableProjects: projects.map((project) => ({
+          id: project.id,
+          slug: projectRouteKey(project, projects),
+          name: project.name,
+        })),
+      });
       window.history.replaceState(null, '', '/');
       setView('home');
       setActiveId(null);
@@ -146,6 +172,15 @@ export default function App() {
     if (hasHydrated && view === 'detail' && activeProject) {
       const canonicalPath = projectPath(activeProject, projects, activeTab);
       if (window.location.pathname !== canonicalPath) {
+        console.log('[route] canonicalizing project route', {
+          from: window.location.pathname,
+          to: canonicalPath,
+          activeProject: {
+            id: activeProject.id,
+            slug: projectRouteKey(activeProject, projects),
+            name: activeProject.name,
+          },
+        });
         window.history.replaceState(null, '', canonicalPath);
         setActiveId(projectRouteKey(activeProject, projects));
       }

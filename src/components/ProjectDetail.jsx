@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { stats } from './helpers.js';
 import FilesTab from './tabs/FilesTab.jsx';
 import NotesTab from './tabs/NotesTab.jsx';
@@ -9,6 +9,17 @@ export default function ProjectDetail(props) {
   const projectStats = stats(project);
   const badgeClass = { active: 'badge-active', paused: 'badge-paused', planning: 'badge-planning' }[project.status] || 'badge-planning';
   const badgeLabel = { active: 'Active', paused: 'Paused', planning: 'Planning', done: 'Done' }[project.status] || project.status;
+
+  useEffect(() => {
+    console.log('[render] project detail', {
+      path: window.location.pathname,
+      activeTab,
+      projectId: project.id,
+      projectName: project.name,
+      taskCount: project.tasks?.length,
+      taskNames: project.tasks?.map((task) => task.text),
+    });
+  }, [activeTab, project.id, project.name, project.tasks]);
 
   return (
     <main className="detail">
