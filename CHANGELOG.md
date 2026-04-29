@@ -2,9 +2,11 @@
 
 All notable changes to ProjectDesk will be documented in this file.
 
-This project follows the spirit of [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and can later adopt semantic versioning once releases begin.
+This project follows the spirit of [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and uses semantic versioning for releases.
 
 ## [Unreleased]
+
+## [0.6.0] - 2026-04-29
 
 ### Added
 - Added `.gitignore` with exclusions for generated files, local env files, logs, and private local-only files.

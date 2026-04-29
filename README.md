@@ -2,7 +2,9 @@
 
 ProjectDesk is a personal project management web app built from a converted single-file artifact into a standalone React + Vite application.
 
-It is designed for daily use on desktop and Android, with project cards, a priority dashboard, editable tasks and subtasks, notes, files/links, mobile-friendly layouts, local offline storage, PWA support, and optional Supabase sync.
+It is designed for daily use on desktop and Android, with project cards, a priority dashboard, editable tasks and subtasks, task detail descriptions, notes, files/links, mobile-friendly layouts, local offline storage, PWA support, and optional Supabase sync.
+
+Current release: `v0.6.0` functional alpha / early private beta.
 
 ## Features
 
@@ -10,7 +12,10 @@ It is designed for daily use on desktop and Android, with project cards, a prior
 - Priority dashboard across all projects
 - Filters by importance, project, and status
 - Project detail pages with Tasks, Notes, and Files tabs
-- Editable project names, statuses, and colors
+- Create, edit, and delete projects
+- Editable project names and statuses
+- Task titles plus optional descriptions
+- Task detail modal with project, priority, status, description, and subtasks
 - Editable tasks and subtasks
 - Task priorities and importance levels
 - Project notes
@@ -23,6 +28,7 @@ It is designed for daily use on desktop and Android, with project cards, a prior
 - Installable PWA support
 - localStorage persistence by default
 - Optional Supabase sync with localStorage fallback
+- Sync status indicator with last synced, syncing, offline, and error states
 
 ## Tech Stack
 
@@ -51,6 +57,7 @@ ProjectDesk/
     main.jsx
   supabase/
     schema.sql
+    add-task-title-description.sql
   CHANGELOG.md
   README.md
   todo.md
@@ -120,7 +127,9 @@ ProjectDesk uses a storage adapter pattern:
 - localStorage is always used as the offline cache.
 - Supabase is used when environment variables are configured.
 - If Supabase is unavailable, the app keeps working from localStorage.
-- Saves write to localStorage first, then sync to Supabase in the background.
+- Saves write to localStorage first, then sync scoped row changes to Supabase.
+- Remote refresh runs on startup, focus, visibility changes, a timed interval, and after successful saves.
+- Projects, tasks, and subtasks use `updated_at` and `deleted_at` so newer edits and soft deletes can converge across devices.
 
 The storage layer lives in:
 
@@ -141,6 +150,12 @@ To enable sync across desktop and Android:
 
 ```text
 supabase/schema.sql
+```
+
+If your database was created before task descriptions were added, also run:
+
+```text
+supabase/add-task-title-description.sql
 ```
 
 4. Copy your Supabase Project URL.
@@ -181,7 +196,7 @@ Useful project documents:
 - [todo.md](todo.md)
 - [supabase/schema.sql](supabase/schema.sql)
 
-Before the first Git commit, add a `.gitignore` and avoid committing:
+Avoid committing:
 
 - `node_modules/`
 - `dist/`
@@ -190,4 +205,4 @@ Before the first Git commit, add a `.gitignore` and avoid committing:
 
 ## Current Status
 
-The app is functional locally with localStorage persistence and optional Supabase sync code in place. Supabase needs project credentials and the SQL schema applied before cross-device sync is active.
+The app is functional as an early private beta. It supports local daily use, optional Supabase cross-device sync, browser routes, PWA basics, and project/task management flows. Before treating it as a stable daily-driver release, verify Android PWA install/offline behavior and continue real-world desktop-to-mobile sync testing.
