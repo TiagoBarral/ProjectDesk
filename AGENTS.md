@@ -88,15 +88,74 @@ Before connecting to GitHub or making the first commit:
 
 ## Branch Rules
 
-- `main` should stay stable.
-- Do not commit directly to `main` once the GitHub repository is active.
-- Use short-lived branches:
+- `main` is production: it must stay stable, deployable, and ready for Vercel.
+- Branches are safe workspaces.
+- Keep the workflow practical and simple; do not add ceremony when it does not protect the app.
+- Create a branch for any change that affects app behavior.
+- If unsure, use a branch.
+
+Create a branch for:
+- App logic, state, mutations, or hooks
+- Routing and navigation
+- Storage or sync logic, including localStorage and Supabase
+- Supabase schema, queries, or migrations
+- UI behavior or layout changes
+- Dependency changes
+- Anything that requires testing before going live
+
+Committing directly to `main` is OK for:
+- `README.md`, `todo.md`, `AGENTS.md`, or documentation-only edits
+- Typos or comments
+- Formatting-only changes
+- Trivial config tweaks, as long as relevant checks still pass
+
+Use short-lived branch names:
   - `feat/short-description` for new features
   - `fix/short-description` for bug fixes
   - `chore/short-description` for setup, tooling, dependency, or cleanup work
   - `docs/short-description` for documentation-only changes
   - `refactor/short-description` for structural changes without behavior changes
-  - `test/short-description` for tests only
+
+Examples:
+
+```text
+fix/supabase-hydration
+chore/logging-cleanup
+feat/mobile-layout
+docs/update-readme
+refactor/storage-adapter
+```
+
+Start work:
+
+```bash
+git checkout main
+git pull
+git checkout -b <branch-name>
+```
+
+Work and commit on the branch:
+
+```bash
+git add .
+git commit -m "<type>: <short description>"
+```
+
+Before merging:
+
+```bash
+npm run build
+```
+
+Merge locally; no PR is required unless the user explicitly asks for one:
+
+```bash
+git checkout main
+git merge <branch-name>
+git push
+```
+
+Optionally delete the branch after merge.
 
 ## Commit Rules
 
@@ -115,6 +174,7 @@ Valid types:
 - `docs`
 - `refactor`
 - `test`
+- Do not label internal/dev-only changes as `feat`; use `chore` or `refactor` instead.
 
 Examples:
 
@@ -129,9 +189,9 @@ chore: add gitignore
 
 When a GitHub repo is connected:
 
-- Open PRs into `main`.
-- Include what changed, why it changed, and how it was tested.
-- Squash and merge unless the user asks for a different strategy.
+- Pull requests are optional for solo work.
+- Open a PR only when the user explicitly asks for one, or when review/discussion would add value.
+- If a PR is opened, target `main` and include what changed, why it changed, and how it was tested.
 - Delete short-lived branches after merge.
 
 Before committing or opening a PR:
@@ -141,6 +201,7 @@ Before committing or opening a PR:
 - Update `README.md` if setup, architecture, or usage changed.
 - Update `todo.md` if new follow-up work was discovered or completed.
 - Confirm no secrets or generated folders are included.
+- Never push broken code to `main`.
 
 ## Changelog Rules
 
@@ -208,15 +269,26 @@ git tag v0.1.0
 - Keep `todo.md` about what remains.
 - Keep `README.md` about how to understand and run the project.
 
+## Documentation Commit Timing
+
+- Commit documentation immediately when it changes how we must work now, such as workflow, safety, secrets, deployment, or required setup rules.
+- Batch small documentation notes, TODO refinements, wording tweaks, and future-idea entries into the next docs cleanup commit.
+- Do not create tiny docs commits unless the change is operationally important or the user asks to save it now.
+
 ## Journal Rules
 
 - Keep the personal development journal at `_private/JOURNAL.md`.
 - `_private/` is gitignored and must never be committed.
 - Whenever `CHANGELOG.md` is updated, update `_private/JOURNAL.md` in the same action without asking first.
 - Also update the journal whenever the user asks, or after a session with meaningful work.
+- Create a journal entry whenever there is a meaningful debate, planning decision, lesson learned, or "eureka" moment, even if no code changes were made.
+- Capture why the debate or realization mattered, what options were considered, what decision was made, and how it should affect future work.
 - The journal is not a changelog. It is a personal development log written for portfolio reflection.
 - Write in first person: `I built`, `I learned`, `I got stuck`, not `the developer`.
 - Keep it human and honest about confusion, failures, debugging, and decisions.
+- Document every meaningful hurdle in a human way: what felt confusing, what looked misleading, what evidence changed the direction, and why it took time.
+- When an issue is solved, add a resolution reflection too: what finally proved the fix worked, what the real root cause was, and what the full process taught me.
+- Prefer a coherent story over a dry technical summary. Capture the arc from symptom, to false leads, to final proof.
 - Use prose, not bullet-point dumps.
 - Avoid technical jargon unless explaining the technical lesson is the point.
 - Do not copy private details from other projects into this project's journal.

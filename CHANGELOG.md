@@ -49,6 +49,10 @@ This project follows the spirit of [Keep a Changelog](https://keepachangelog.com
 - Added `deleted_at` soft-delete support for projects, tasks, and subtasks in the Supabase schema.
 - Added automatic Supabase refresh on startup, focus, visibility changes, periodic polling, and after successful local saves.
 - Added a small sync indicator for syncing, synced, error, and offline states.
+- Added a last-synced timestamp to the sync indicator.
+- Added task `title` and `description` support with clickable task detail modals.
+- Added a home-page new project button and creation modal.
+- Added project deletion from the project detail view with a confirmation modal.
 
 ### Changed
 - Replaced Claude/Cowork-specific save logic with a reusable data layer.
@@ -60,6 +64,19 @@ This project follows the spirit of [Keep a Changelog](https://keepachangelog.com
 - Simplified Supabase sync to plain `projects`, `tasks`, `subtasks`, and `files` tables with localStorage-first saves.
 - Removed current-phase Supabase RLS/auth assumptions from the schema documentation; auth and RLS remain future work.
 - Replaced temporary render, route, hydration, and Supabase debug logs with concise logging summaries.
+- Changed task displays to use short titles while keeping descriptions in task detail views.
+- Changed priority dots to mirror task importance instead of using a separate selector.
+- Changed importance dropdowns to use the same red, orange, and green visual mapping as importance badges and priority dots.
+- Changed project colors to read as muted identity accents so they compete less with priority colors.
+- Changed projects to use a single slate-gray accent with no project color picker.
+- Renamed the Priority Dashboard task table column from `Importance` to `Priority`.
+- Changed the home-page new project button to use a calmer blue project action color.
+- Changed project creation from a header button to an add-project card inside the project grid.
+- Moved the add-project card to the first grid position.
+- Polished the project section heading.
+- Matched the Priority Dashboard heading and subtitle typography to the Projects section.
+- Fixed Priority Dashboard table alignment so long project names truncate cleanly and priority badges are centered.
+- Centered the Priority Dashboard project column header and project chips.
 
 ### Fixed
 - Fixed Supabase save sync to upsert exact `projects`, `tasks`, and `subtasks` rows with required foreign keys.
@@ -73,6 +90,7 @@ This project follows the spirit of [Keep a Changelog](https://keepachangelog.com
 - Fixed stale-device sync conflicts by keeping soft-delete tombstones, hiding deleted items in the UI, and only upserting rows when the local item event is newer than Supabase.
 - Fixed local ghost-state divergence by treating Supabase as authoritative during hydration unless a local-only item is explicitly marked `sync_pending`.
 - Fixed cross-device convergence delay so another device's changes can appear without manual refresh.
+- Fixed project normalization to preserve stored slugs before deriving a slug from the display name.
 
 ### Verified
 - Installed Node.js/npm through winget when npm was missing.
@@ -85,11 +103,9 @@ This project follows the spirit of [Keep a Changelog](https://keepachangelog.com
 - Verified build after routing, editing, seeded data, and Supabase changes.
 
 ### Known Next Work
-- Connect the local repository to GitHub.
-- Decide whether to rename the default branch from `master` to `main`.
-- Run the Supabase SQL schema in a real Supabase project.
 - Test desktop-to-Android and Android-to-desktop sync.
-- Add visible Supabase sync/offline error states.
-- Add create/delete project flows.
-- Add safer delete confirmations.
+- Continue mobile UX polish for task cards, filters, and project detail views.
+- Verify Android PWA install and offline launch behavior.
+- Add safer delete confirmations for tasks, subtasks, and files.
+- Add search, import/export backup, and optional AI task improvement.
 - Add auth later and update RLS policies to use `owner_id = auth.uid()`.

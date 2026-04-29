@@ -1,4 +1,4 @@
-import { hexToRgb, stats } from './helpers.js';
+import { DEFAULT_PROJECT_COLOR, stats } from './helpers.js';
 
 export default function ProjectCard({ project, onOpen }) {
   const projectStats = stats(project);
@@ -13,9 +13,9 @@ export default function ProjectCard({ project, onOpen }) {
       className="project-card"
       type="button"
       onClick={onOpen}
-      style={{ '--card-glow': `rgba(${hexToRgb(project.color)},.1)` }}
+      style={{ '--project-color': DEFAULT_PROJECT_COLOR }}
     >
-      <div className="card-stripe" style={{ background: `linear-gradient(90deg,${project.color},${project.color}66)` }} />
+      <div className="card-stripe" />
       <div className="card-top">
         <div>
           <div className="card-name">{project.name}</div>
@@ -29,13 +29,13 @@ export default function ProjectCard({ project, onOpen }) {
               cx="38"
               cy="38"
               r={radius}
-              stroke={project.color}
+              stroke="var(--project-color)"
               strokeDasharray={circumference.toFixed(2)}
               strokeDashoffset={offset.toFixed(2)}
             />
           </svg>
           <div className="ring-pct">
-            <span className="num" style={{ color: project.color }}>{projectStats.pct}%</span>
+            <span className="num">{projectStats.pct}%</span>
             <span className="lbl">done</span>
           </div>
         </div>

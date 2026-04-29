@@ -10,45 +10,7 @@ export const defaultData = {
       name: 'PoliMetrics',
       color: '#5e5ce6',
       status: 'active',
-      tasks: [
-        {
-          id: 'pm-t1',
-          text: 'Finish polling dashboard wireframes',
-          priority: 'high',
-          importance: 'high',
-          done: false,
-          expanded: true,
-          subtasks: [
-            { id: 'pm-t1-s1', text: 'Define top-line KPI cards', done: true },
-            { id: 'pm-t1-s2', text: 'Sketch district comparison table', done: false },
-            { id: 'pm-t1-s3', text: 'Check mobile chart stacking', done: false },
-          ],
-        },
-        {
-          id: 'pm-t2',
-          text: 'Clean sample election dataset',
-          priority: 'mid',
-          importance: 'medium',
-          done: false,
-          expanded: false,
-          subtasks: [
-            { id: 'pm-t2-s1', text: 'Normalize candidate names', done: false },
-            { id: 'pm-t2-s2', text: 'Remove duplicate polling rows', done: false },
-          ],
-        },
-        {
-          id: 'pm-t3',
-          text: 'Write tooltip copy for confidence intervals',
-          priority: 'low',
-          importance: 'low',
-          done: true,
-          expanded: false,
-          subtasks: [
-            { id: 'pm-t3-s1', text: 'Draft plain-language explanation', done: true },
-            { id: 'pm-t3-s2', text: 'Review with dashboard labels', done: true },
-          ],
-        },
-      ],
+      tasks: [],
       notes: 'PoliMetrics focus this week:\n\n- Keep the dashboard dense and analytical.\n- Make the mobile view easy to scan during quick checks.\n- Priority is the polling dashboard, then data cleanup, then copy polish.\n\nQuestions to validate: are confidence intervals understandable without extra documentation?',
       files: [
         { id: 'pm-f1', name: 'Polling dashboard brief', kind: 'link', path: 'https://example.com/polimetrics/brief', date: '4/27/2026' },
@@ -60,46 +22,7 @@ export const defaultData = {
       name: 'LeadBridge',
       color: '#ff9500',
       status: 'active',
-      tasks: [
-        {
-          id: 'lb-t1',
-          text: 'Map CRM onboarding flow',
-          priority: 'high',
-          importance: 'high',
-          done: false,
-          expanded: true,
-          subtasks: [
-            { id: 'lb-t1-s1', text: 'List required contact fields', done: true },
-            { id: 'lb-t1-s2', text: 'Design import review step', done: false },
-            { id: 'lb-t1-s3', text: 'Add duplicate detection notes', done: false },
-          ],
-        },
-        {
-          id: 'lb-t2',
-          text: 'Prototype lead scoring rules',
-          priority: 'mid',
-          importance: 'medium',
-          done: false,
-          expanded: false,
-          subtasks: [
-            { id: 'lb-t2-s1', text: 'Score recent activity', done: false },
-            { id: 'lb-t2-s2', text: 'Weight company fit', done: false },
-            { id: 'lb-t2-s3', text: 'Flag stale leads', done: false },
-          ],
-        },
-        {
-          id: 'lb-t3',
-          text: 'Review empty states for pipeline board',
-          priority: 'low',
-          importance: 'low',
-          done: true,
-          expanded: false,
-          subtasks: [
-            { id: 'lb-t3-s1', text: 'Check no-leads state', done: true },
-            { id: 'lb-t3-s2', text: 'Check filtered-out state', done: true },
-          ],
-        },
-      ],
+      tasks: [],
       notes: 'LeadBridge validation notes:\n\n- Main workflow should feel operational, not like a marketing page.\n- Test table-to-card transitions on Android.\n- Use the high-priority CRM onboarding task to check dashboard filters.\n\nPotential later Supabase tables: organizations, contacts, leads, lead_events.',
       files: [
         { id: 'lb-f1', name: 'CRM import checklist', kind: 'link', path: 'https://example.com/leadbridge/import-checklist', date: '4/27/2026' },
@@ -110,46 +33,7 @@ export const defaultData = {
       name: 'Portfolio Journal',
       color: '#34c759',
       status: 'active',
-      tasks: [
-        {
-          id: 'pf-t1',
-          text: 'Explore portfolio entry templates',
-          priority: 'mid',
-          importance: 'medium',
-          done: false,
-          expanded: true,
-          subtasks: [
-            { id: 'pf-t1-s1', text: 'Collect three reference layouts', done: true },
-            { id: 'pf-t1-s2', text: 'Pick fields for project metadata', done: false },
-            { id: 'pf-t1-s3', text: 'Test long title wrapping', done: false },
-          ],
-        },
-        {
-          id: 'pf-t2',
-          text: 'Write first case study draft',
-          priority: 'high',
-          importance: 'high',
-          done: false,
-          expanded: false,
-          subtasks: [
-            { id: 'pf-t2-s1', text: 'Outline problem and constraints', done: false },
-            { id: 'pf-t2-s2', text: 'Add screenshots checklist', done: false },
-            { id: 'pf-t2-s3', text: 'Summarize outcome metrics', done: false },
-          ],
-        },
-        {
-          id: 'pf-t3',
-          text: 'Tag older notes by theme',
-          priority: 'low',
-          importance: 'low',
-          done: true,
-          expanded: false,
-          subtasks: [
-            { id: 'pf-t3-s1', text: 'Create themes list', done: true },
-            { id: 'pf-t3-s2', text: 'Tag five sample notes', done: true },
-          ],
-        },
-      ],
+      tasks: [],
       notes: 'Portfolio Journal notes:\n\n- Daily use should be quick: capture the project, what changed, and why it matters.\n- Check notes autosave by typing here, navigating away, and coming back.\n- Case study draft is the highest-value next task.',
       files: [
         { id: 'pf-f1', name: 'Portfolio inspiration board', kind: 'link', path: 'https://example.com/portfolio/inspiration', date: '4/27/2026' },
@@ -160,45 +44,7 @@ export const defaultData = {
       name: 'SPARK',
       color: '#ff2d55',
       status: 'active',
-      tasks: [
-        {
-          id: 'sp-t1',
-          text: 'Define SPARK weekly planning ritual',
-          priority: 'high',
-          importance: 'high',
-          done: false,
-          expanded: true,
-          subtasks: [
-            { id: 'sp-t1-s1', text: 'Choose recurring review questions', done: false },
-            { id: 'sp-t1-s2', text: 'Create energy and focus labels', done: false },
-            { id: 'sp-t1-s3', text: 'Decide Sunday or Monday cadence', done: true },
-          ],
-        },
-        {
-          id: 'sp-t2',
-          text: 'Build idea backlog categories',
-          priority: 'mid',
-          importance: 'medium',
-          done: false,
-          expanded: false,
-          subtasks: [
-            { id: 'sp-t2-s1', text: 'Separate experiments from commitments', done: false },
-            { id: 'sp-t2-s2', text: 'Add quick-win category', done: false },
-          ],
-        },
-        {
-          id: 'sp-t3',
-          text: 'Archive completed April experiments',
-          priority: 'low',
-          importance: 'low',
-          done: true,
-          expanded: false,
-          subtasks: [
-            { id: 'sp-t3-s1', text: 'Move finished items to notes', done: true },
-            { id: 'sp-t3-s2', text: 'Keep one lesson per experiment', done: true },
-          ],
-        },
-      ],
+      tasks: [],
       notes: 'SPARK notes:\n\n- Use this project to test quick capture, completion stats, subtasks, and low-priority filtering.\n- The weekly planning ritual is intentionally expanded to verify nested subtasks on mobile.\n- Keep the visual style calm even when the task list is busy.',
       files: [
         { id: 'sp-f1', name: 'SPARK ritual draft', kind: 'link', path: 'D:\\Projects\\SPARK\\weekly-ritual.md', date: '4/27/2026' },
@@ -252,7 +98,7 @@ export function normalizeData(data) {
   return {
     projects: safe.projects.map((project, projectIndex) => {
       const projectId = ensureUuid(project.id, `project:${projectIndex}:${project.name || ''}`);
-      const projectSlug = slugify(project.name) || slugify(project.slug) || projectId;
+      const projectSlug = slugify(project.slug) || slugify(project.name) || projectId;
       return {
         id: projectId,
         slug: projectSlug,
@@ -265,10 +111,13 @@ export function normalizeData(data) {
         sync_pending: Boolean(project.sync_pending),
         files: Array.isArray(project.files) ? project.files : [],
         tasks: (project.tasks || []).map((task, taskIndex) => {
-          const taskId = ensureUuid(task.id, `task:${projectId}:${taskIndex}:${task.text || ''}`);
+          const taskTitle = task.title || task.text || '';
+          const taskId = ensureUuid(task.id, `task:${projectId}:${taskIndex}:${taskTitle}`);
           return {
             id: taskId,
-            text: task.text || '',
+            title: taskTitle,
+            text: taskTitle,
+            description: task.description || '',
             priority: task.priority || 'mid',
             importance: task.importance || 'medium',
             done: Boolean(task.done),
@@ -436,7 +285,9 @@ function composeData({ projects, tasks, subtasks, files }) {
       })),
       tasks: (tasksByProject[project.id] || []).map((task) => ({
         id: task.id,
-        text: task.text || task.title || '',
+        title: task.title || task.text || '',
+        text: task.title || task.text || '',
+        description: task.description || '',
         priority: task.priority || 'mid',
         importance: task.importance || 'medium',
         done: Boolean(task.done ?? task.completed),
@@ -591,12 +442,15 @@ function flattenData(data, changed) {
       });
     }
     project.tasks.forEach((task, taskIndex) => {
-      const taskId = ensureUuid(task.id, `task:${projectId}:${taskIndex}:${task.text || ''}`);
+      const taskTitle = task.title || task.text || '';
+      const taskId = ensureUuid(task.id, `task:${projectId}:${taskIndex}:${taskTitle}`);
       if (shouldSync(scope, 'tasks', taskId)) {
         tasks.push({
           id: taskId,
           project_id: projectId,
-          text: task.text,
+          title: taskTitle,
+          text: taskTitle,
+          description: task.description || '',
           done: task.done,
           importance: task.importance,
           priority: task.priority,

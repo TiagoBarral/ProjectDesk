@@ -1,24 +1,22 @@
 # ProjectDesk TODO
 
 ## Setup and Repository
-- [ ] Create the GitHub repository and add it as `origin`.
-- [ ] Make the first clean commit from `D:\PERSONAL\ProjectDesk`.
-- [ ] Decide whether the default branch should be `main` instead of `master`.
+- [ ] Consider extracting the journal workflow into a reusable Codex skill, then reference that skill from `AGENTS.md` so the same reflective journaling rules can be shared across projects.
 
 ## Supabase Sync
-- [ ] Create or choose the Supabase project.
-- [ ] Run `supabase/schema.sql` in the Supabase SQL editor.
+- [x] Create or choose the Supabase project.
+- [x] Run the current Supabase SQL schema/migrations in the Supabase SQL editor.
 - [x] Create a local `.env` with `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`.
-- [ ] Restart the Vite dev server after adding `.env`.
+- [x] Restart the Vite dev server after adding `.env`.
 - [ ] Verify desktop edits sync to Android.
 - [ ] Verify Android edits sync back to desktop.
-- [ ] Add a visible sync/offline error state if Supabase save fails.
-- [ ] Consider replacing full-table save with row-level upserts/deletes for larger datasets.
+- [x] Add a visible sync/offline error state if Supabase save fails.
+- [x] Replace broad full-state saves with scoped row-level Supabase upserts where practical.
 
 ## Enable Supabase Sync Steps
 - [ ] Open the Supabase dashboard and create/select a project.
 - [ ] Go to the SQL editor in Supabase.
-- [ ] Paste and run the full contents of `supabase/schema.sql`.
+- [x] Paste and run the current schema/migrations needed by the app.
 - [ ] In Supabase, go to Project Settings > API.
 - [x] Copy the Project URL.
 - [x] Copy the anon public API key.
@@ -33,14 +31,43 @@
 - [ ] Keep `.env` out of git.
 
 ## App Functionality
-- [ ] Add create/delete project flows.
-- [ ] Add safer delete confirmations for projects, tasks, subtasks, and files.
+- [x] Add create/delete project flows.
+- [ ] Add safer delete confirmations for tasks, subtasks, and files.
 - [ ] Add project ordering or pinning.
 - [ ] Add due dates or scheduled dates for tasks.
 - [ ] Add search across projects, tasks, notes, and files.
 - [ ] Add tags or labels for tasks.
 - [ ] Add a reset/demo-data action for testing.
 - [ ] Add import/export JSON backup.
+
+## AI Features
+- [ ] AI task improvement (ProjectDesk)
+  - Add "Improve" button next to task input.
+  - Create Vercel API route `/api/improve-task`.
+  - Use OpenAI Responses API to expand task text.
+  - Keep output short: single sentence, max about 160 chars.
+  - Do not expose API key; use server-side env var `OPENAI_API_KEY`.
+  - Add loading and error states in UI.
+  - Do not auto-save; user confirms before adding task.
+
+  Safety:
+  - Limit input length to about 300 chars.
+  - Limit output length.
+  - Add rate limiting, for example 20 requests/hour per IP.
+  - Add request timeout around 10 seconds.
+  - Use a low-cost model only.
+  - Only trigger on button click; no automatic calls.
+
+  Platform setup:
+  - Create OpenAI API key.
+  - Add `OPENAI_API_KEY` to Vercel env vars.
+  - Create separate OpenAI project for ProjectDesk.
+  - Set low budget alerts, about $2-$5.
+  - Restrict to one model.
+
+  Notes:
+  - Implement after current sync system is stable.
+  - Consider adding last synced UI first because it is higher priority.
 
 ## Routing and Navigation
 - [ ] Keep testing name-based project routes after renames.

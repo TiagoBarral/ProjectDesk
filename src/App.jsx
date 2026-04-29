@@ -6,10 +6,12 @@ import PriorityDashboard from './components/PriorityDashboard.jsx';
 import ProjectCard from './components/ProjectCard.jsx';
 import ProjectDetail from './components/ProjectDetail.jsx';
 import SyncStatus from './components/SyncStatus.jsx';
+import { DEFAULT_PROJECT_COLOR } from './components/helpers.js';
 
 const uid = () => (window.crypto?.randomUUID ? window.crypto.randomUUID() : Math.random().toString(36).slice(2, 9));
 const nowIso = () => new Date().toISOString();
 const tabs = ['tasks', 'notes', 'files'];
+const priorityFromImportance = (importance) => (importance === 'high' ? 'high' : importance === 'low' ? 'low' : 'mid');
 
 function slugify(value) {
   return String(value || '')
@@ -19,6 +21,23 @@ function slugify(value) {
     .trim()
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '');
+}
+
+function uniqueProjectSlug(name, projects, projectId) {
+  const baseSlug = slugify(name) || projectId;
+  const usedSlugs = new Set(
+    projects
+      .filter((project) => project.id !== projectId)
+      .map((project) => project.slug || slugify(project.name)),
+  );
+
+  let slug = baseSlug;
+  let suffix = 2;
+  while (usedSlugs.has(slug)) {
+    slug = `${baseSlug}-${suffix}`;
+    suffix += 1;
+  }
+  return slug;
 }
 
 function projectRouteKey(project, projects) {
@@ -76,6 +95,7 @@ export default function App() {
   const [hasHydrated, setHasHydrated] = useState(false);
   const [isInitializing, setIsInitializing] = useState(true);
   const [syncState, setSyncState] = useState('idle');
+  const [lastSyncedAt, setLastSyncedAt] = useState(null);
   const [view, setView] = useState(initialRoute.view);
   const [routeProjectParam, setRouteProjectParam] = useState(initialRoute.routeProjectParam);
   const [activeTab, setActiveTab] = useState(initialRoute.activeTab);
@@ -101,6 +121,7 @@ export default function App() {
     try {
       const remoteState = await loadRemoteState({ throwOnError: true });
       if (!remoteState) {
+        setLastSyncedAt(new Date());
         setSyncState('synced');
         return null;
       }
@@ -109,6 +130,7 @@ export default function App() {
       dataRef.current = mergedState;
       setData(mergedState);
       cacheState(mergedState);
+      setLastSyncedAt(new Date());
       setSyncState('synced');
       return mergedState;
     } catch (error) {
@@ -296,7 +318,10 @@ export default function App() {
 
     setSyncState('syncing');
     saveState(normalized, { changed })
-      .then(() => refreshFromRemote())
+      .then(() => {
+        setLastSyncedAt(new Date());
+        return refreshFromRemote();
+      })
       .then((refreshResult) => {
         if (refreshResult !== false) setSyncState('synced');
       })
@@ -390,14 +415,39 @@ export default function App() {
   const addTask = (projectId, task) => {
     const timestamp = nowIso();
     const taskId = uid();
+    const title = task.title || task.text || '';
+    const importance = task.importance || 'medium';
     updateProject(projectId, (project) => ({
       ...project,
-      tasks: [...project.tasks, { id: taskId, text: task.text, priority: task.priority, importance: task.importance, done: false, expanded: false, updated_at: timestamp, deleted_at: null, sync_pending: true, subtasks: [] }],
+      tasks: [...project.tasks, { id: taskId, title, text: title, description: task.description || '', priority: priorityFromImportance(importance), importance, done: false, expanded: false, updated_at: timestamp, deleted_at: null, sync_pending: true, subtasks: [] }],
     }), { tasks: [taskId] }, { markProjectPending: false });
   };
 
+  const addProject = (project) => {
+    const timestamp = nowIso();
+    const projectId = uid();
+    const nextProject = {
+      id: projectId,
+      slug: uniqueProjectSlug(project.name, data.projects, projectId),
+      name: project.name,
+      color: project.color || DEFAULT_PROJECT_COLOR,
+      status: project.status || 'active',
+      notes: '',
+      files: [],
+      tasks: [],
+      updated_at: timestamp,
+      deleted_at: null,
+      sync_pending: true,
+    };
+
+    persist({
+      ...data,
+      projects: [...data.projects, nextProject],
+    }, { projects: [projectId] });
+  };
+
   const updateProjectMeta = (projectId, updates) => {
-    const projectUpdates = updates.name ? { ...updates, slug: slugify(updates.name), updated_at: nowIso(), sync_pending: true } : { ...updates, updated_at: nowIso(), sync_pending: true };
+    const projectUpdates = updates.name ? { ...updates, slug: uniqueProjectSlug(updates.name, data.projects, projectId), updated_at: nowIso(), sync_pending: true } : { ...updates, updated_at: nowIso(), sync_pending: true };
     const nextState = normalizeData({
       ...data,
       projects: data.projects.map((project) => (project.id === projectId ? { ...project, ...projectUpdates } : project)),
@@ -415,11 +465,31 @@ export default function App() {
     persist(nextState, { projects: [projectId] });
   };
 
+  const deleteProject = (projectId) => {
+    const timestamp = nowIso();
+    const nextState = normalizeData({
+      ...data,
+      projects: data.projects.map((project) => (
+        project.id === projectId
+          ? { ...project, deleted_at: timestamp, updated_at: timestamp, sync_pending: true }
+          : project
+      )),
+    });
+
+    persist(nextState, { projects: [projectId] });
+    navigate({ view: 'home', routeProjectParam: null, activeTab: 'tasks' });
+  };
+
   const updateTask = (projectId, taskId, updates) => {
     const timestamp = nowIso();
+    const normalizedUpdates = {
+      ...updates,
+      ...(updates.title ? { text: updates.title } : {}),
+      ...(updates.importance ? { priority: priorityFromImportance(updates.importance) } : {}),
+    };
     updateProject(projectId, (project) => ({
       ...project,
-      tasks: project.tasks.map((task) => (task.id === taskId ? { ...task, ...updates, updated_at: timestamp, sync_pending: true } : task)),
+      tasks: project.tasks.map((task) => (task.id === taskId ? { ...task, ...normalizedUpdates, updated_at: timestamp, sync_pending: true } : task)),
     }), { tasks: [taskId] }, { markProjectPending: false });
   };
 
@@ -499,7 +569,10 @@ export default function App() {
     }));
   };
 
-  const showSaved = () => setSyncState('synced');
+  const showSaved = () => {
+    setLastSyncedAt(new Date());
+    setSyncState('synced');
+  };
 
   return (
     <>
@@ -510,12 +583,26 @@ export default function App() {
             filters={data.filters}
             onFiltersChange={setFilters}
             onToggleTask={toggleTask}
+            onUpdateTask={updateTask}
+            openModal={openModal}
           />
           <div className="home-header">
-            <h1>My Projects</h1>
-            <p>Manage tasks, notes, and files per project</p>
+            <div>
+              <h1>Projects</h1>
+              <p>Manage tasks, notes, and files per project</p>
+            </div>
           </div>
           <div className="card-grid">
+            <button
+              className="new-project-card"
+              type="button"
+              onClick={() => openModal(({ onClose }) => (
+                <NewProjectModal onClose={onClose} onSubmit={addProject} />
+              ))}
+            >
+              <span className="new-project-icon">+</span>
+              <span className="new-project-label">New Project</span>
+            </button>
             {projects.map((project) => (
               <ProjectCard key={project.id} project={project} onOpen={() => openProject(project.id)} />
             ))}
@@ -528,6 +615,7 @@ export default function App() {
           onBack={goHome}
           onTabChange={switchTab}
           onUpdateProject={(updates) => updateProjectMeta(detailProject.id, updates)}
+          onDeleteProject={() => deleteProject(detailProject.id)}
           onToggleTask={(taskId) => toggleTask(detailProject.id, taskId)}
           onToggleTaskExpanded={(taskId, expanded) => toggleTaskExpanded(detailProject.id, taskId, expanded)}
           onDeleteTask={(taskId) => deleteTask(detailProject.id, taskId)}
@@ -545,8 +633,42 @@ export default function App() {
           openModal={openModal}
         />
       )}
-      <SyncStatus state={syncState} />
+      <SyncStatus state={syncState} lastSyncedAt={lastSyncedAt} />
       <Modal modal={modal} onClose={() => setModal(null)} />
+    </>
+  );
+}
+
+function NewProjectModal({ onClose, onSubmit }) {
+  const [name, setName] = useState('');
+  const [status, setStatus] = useState('active');
+
+  const submit = () => {
+    if (!name.trim()) return;
+    onSubmit({ name: name.trim(), status });
+    onClose();
+  };
+
+  return (
+    <>
+      <h2>New Project</h2>
+      <div className="field">
+        <label>Project name</label>
+        <input autoFocus value={name} onChange={(event) => setName(event.target.value)} onKeyDown={(event) => event.key === 'Enter' && submit()} placeholder="Project name" />
+      </div>
+      <div className="field">
+        <label>Status</label>
+        <select value={status} onChange={(event) => setStatus(event.target.value)}>
+          <option value="active">Active</option>
+          <option value="paused">Paused</option>
+          <option value="planning">Planning</option>
+          <option value="done">Done</option>
+        </select>
+      </div>
+      <div className="modal-actions">
+        <button className="mbtn mbtn-sec" type="button" onClick={onClose}>Cancel</button>
+        <button className="mbtn mbtn-pri" type="button" onClick={submit}>Create Project</button>
+      </div>
     </>
   );
 }

@@ -1,17 +1,19 @@
 import { useEffect, useMemo, useState } from 'react';
 import ImportanceBadge from './ImportanceBadge.jsx';
+import TaskDetailModal from './TaskDetailModal.jsx';
 
 const getAllTasks = (projects) => projects.flatMap((project) => (
   project.tasks.map((task) => ({
     ...task,
+    title: task.title || task.text || '',
+    description: task.description || '',
     importance: task.importance || 'medium',
     projectId: project.id,
     projectName: project.name,
-    projectColor: project.color,
   }))
 ));
 
-export default function PriorityDashboard({ projects, filters, onFiltersChange, onToggleTask }) {
+export default function PriorityDashboard({ projects, filters, onFiltersChange, onToggleTask, onUpdateTask, openModal }) {
   const [currentPage, setCurrentPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const allTasks = getAllTasks(projects);
@@ -39,6 +41,19 @@ export default function PriorityDashboard({ projects, filters, onFiltersChange, 
   const pagedTasks = filteredTasks.slice(startIndex, startIndex + rowsPerPage);
   const showingStart = filteredTasks.length ? startIndex + 1 : 0;
   const showingEnd = Math.min(startIndex + rowsPerPage, filteredTasks.length);
+
+  const openTaskDetails = (task) => {
+    const project = projects.find((item) => item.id === task.projectId);
+    if (!project || !openModal) return;
+    openModal(({ onClose }) => (
+      <TaskDetailModal
+        project={project}
+        task={task}
+        onClose={onClose}
+        onUpdateTask={(taskId, updates) => onUpdateTask(task.projectId, taskId, updates)}
+      />
+    ));
+  };
 
   useEffect(() => {
     setCurrentPage(1);
@@ -80,12 +95,12 @@ export default function PriorityDashboard({ projects, filters, onFiltersChange, 
           <div className="dash-empty">No tasks match these filters.</div>
         ) : (
           <>
-            <div className="ptask-head"><span /><span>Task</span><span>Project</span><span>Importance</span><span>Status</span></div>
+            <div className="ptask-head"><span /><span>Task</span><span>Project</span><span>Priority</span><span>Status</span></div>
             {pagedTasks.map((task) => (
-              <div key={`${task.projectId}-${task.id}`} className={`ptask-row ${task.importance === 'high' ? 'imp-high' : task.importance === 'low' ? 'imp-low' : ''}`}>
-                <button className={`ptask-check ${task.done ? 'done' : ''}`} type="button" aria-label="Toggle task" onClick={() => onToggleTask(task.projectId, task.id)} />
-                <span className={`ptask-title ${task.done ? 'done' : ''}`} title={task.text}>{task.text}</span>
-                <span className="proj-chip" style={{ background: `${task.projectColor}22`, color: task.projectColor }}>{task.projectName}</span>
+              <div key={`${task.projectId}-${task.id}`} className={`ptask-row clickable ${task.importance === 'high' ? 'imp-high' : task.importance === 'low' ? 'imp-low' : ''}`} onClick={() => openTaskDetails(task)}>
+                <button className={`ptask-check ${task.done ? 'done' : ''}`} type="button" aria-label="Toggle task" onClick={(event) => { event.stopPropagation(); onToggleTask(task.projectId, task.id); }} />
+                <button className={`ptask-title ${task.done ? 'done' : ''}`} type="button" title={task.title} onClick={(event) => { event.stopPropagation(); openTaskDetails(task); }}>{task.title}</button>
+                <span className="proj-chip">{task.projectName}</span>
                 <ImportanceBadge importance={task.importance} />
                 <span className={`ptask-status ${task.done ? '' : 'active'}`}>{task.done ? 'Done' : 'Active'}</span>
               </div>

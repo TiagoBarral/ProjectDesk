@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import ImportanceBadge from '../ImportanceBadge.jsx';
-import { priorityClass } from '../helpers.js';
+import TaskDetailModal from '../TaskDetailModal.jsx';
+import { priorityClass, priorityFromImportance } from '../helpers.js';
 
 export default function TasksTab({
   project,
@@ -27,7 +28,7 @@ export default function TasksTab({
       </div>
       {projectStats.total > 0 && (
         <div className="prog-row">
-          <div className="prog-bar"><div className="prog-fill" style={{ width: `${projectStats.pct}%`, background: project.color }} /></div>
+          <div className="prog-bar"><div className="prog-fill" style={{ width: `${projectStats.pct}%` }} /></div>
           <span className="prog-txt">{projectStats.done} / {projectStats.total} · {projectStats.pct}%</span>
         </div>
       )}
@@ -35,6 +36,7 @@ export default function TasksTab({
       {openTasks.map((task) => (
         <TaskCard
           key={task.id}
+          project={project}
           task={task}
           onToggleTask={onToggleTask}
           onToggleTaskExpanded={onToggleTaskExpanded}
@@ -51,6 +53,7 @@ export default function TasksTab({
       {doneTasks.map((task) => (
         <TaskCard
           key={task.id}
+          project={project}
           task={task}
           onToggleTask={onToggleTask}
           onToggleTaskExpanded={onToggleTaskExpanded}
@@ -68,6 +71,7 @@ export default function TasksTab({
 }
 
 function TaskCard({
+  project,
   task,
   onToggleTask,
   onToggleTaskExpanded,
@@ -90,34 +94,39 @@ function TaskCard({
     setSubText('');
   };
 
+  const openTaskDetail = () => openModal(({ onClose }) => (
+    <TaskDetailModal project={project} task={task} onClose={onClose} onUpdateTask={(taskId, updates) => onUpdateTask(taskId, updates)} />
+  ));
+
   return (
-    <div className="task-card">
+    <div className="task-card clickable" onClick={openTaskDetail}>
       <div className="task-row">
-        <button className={`task-check ${task.done ? 'done' : ''}`} type="button" aria-label="Toggle task" onClick={() => onToggleTask(task.id)} />
-        <span className={`pdot ${priorityClass(task.priority)}`} />
-        <span className={`task-text ${task.done ? 'done' : ''}`}>{task.text}</span>
+        <button className={`task-check ${task.done ? 'done' : ''}`} type="button" aria-label="Toggle task" onClick={(event) => { event.stopPropagation(); onToggleTask(task.id); }} />
+        <span className={`pdot ${priorityClass(priorityFromImportance(task.importance || 'medium'))}`} />
+        <button className={`task-text ${task.done ? 'done' : ''}`} type="button" onClick={(event) => { event.stopPropagation(); openTaskDetail(); }}>{task.title}</button>
         <ImportanceBadge importance={task.importance || 'medium'} />
         {!!task.subtasks.length && <span className="sub-count">{doneSubtasks}/{task.subtasks.length}</span>}
-        <div className="task-actions">
-          <button className="icon-btn" type="button" aria-label="Add subtask" onClick={() => onToggleTaskExpanded(task.id, true)}>＋</button>
+        <div className="task-actions" onClick={(event) => event.stopPropagation()}>
+          <button className="icon-btn" type="button" aria-label="Add subtask" onClick={(event) => { event.stopPropagation(); onToggleTaskExpanded(task.id, true); }}>＋</button>
           <button
             className="icon-btn"
             type="button"
             aria-label="Edit task"
-            onClick={() => openModal(({ onClose }) => (
+            onClick={(event) => { event.stopPropagation(); openModal(({ onClose }) => (
               <TaskModal title="Edit Task" actionLabel="Save Task" task={task} onClose={onClose} onSubmit={(updates) => onUpdateTask(task.id, updates)} />
-            ))}
+            )); }}
           >
             ✎
           </button>
-          <button className="icon-btn" type="button" aria-label="Delete task" onClick={() => onDeleteTask(task.id)}>✕</button>
+          <button className="icon-btn" type="button" aria-label="Delete task" onClick={(event) => { event.stopPropagation(); onDeleteTask(task.id); }}>✕</button>
         </div>
-        <button className="expand-btn" type="button" aria-label="Expand task" onClick={() => onToggleTaskExpanded(task.id)}>
+        <button className="expand-btn" type="button" aria-label="Expand task" onClick={(event) => { event.stopPropagation(); onToggleTaskExpanded(task.id); }}>
           {task.expanded ? '▲' : '▼'}
         </button>
       </div>
       {task.expanded && (
-        <div className="subtasks">
+        <div className="subtasks" onClick={(event) => event.stopPropagation()}>
+          {task.description && <div className="task-description">{task.description}</div>}
           {task.subtasks.map((subtask) => (
             <div key={subtask.id} className="subtask-row">
               <button className={`sub-check ${subtask.done ? 'done' : ''}`} type="button" aria-label="Toggle subtask" onClick={() => onToggleSubtask(task.id, subtask.id)} />
@@ -177,13 +186,13 @@ function AddTaskModal({ onClose, onSubmit }) {
 }
 
 function TaskModal({ title, actionLabel, task, onClose, onSubmit }) {
-  const [text, setText] = useState(task?.text || '');
+  const [taskTitle, setTaskTitle] = useState(task?.title || task?.text || '');
+  const [description, setDescription] = useState(task?.description || '');
   const [importance, setImportance] = useState(task?.importance || 'medium');
-  const [priority, setPriority] = useState(task?.priority || 'mid');
 
   const submit = () => {
-    if (!text.trim()) return;
-    onSubmit({ text: text.trim(), importance, priority });
+    if (!taskTitle.trim()) return;
+    onSubmit({ title: taskTitle.trim(), text: taskTitle.trim(), description: description.trim(), importance, priority: priorityFromImportance(importance) });
     onClose();
   };
 
@@ -191,23 +200,19 @@ function TaskModal({ title, actionLabel, task, onClose, onSubmit }) {
     <>
       <h2>{title}</h2>
       <div className="field">
-        <label>Task name</label>
-        <input autoFocus value={text} onChange={(event) => setText(event.target.value)} onKeyDown={(event) => event.key === 'Enter' && submit()} placeholder="What needs to be done?" />
+        <label>Title</label>
+        <input autoFocus value={taskTitle} onChange={(event) => setTaskTitle(event.target.value)} onKeyDown={(event) => event.key === 'Enter' && submit()} placeholder="What needs to be done?" />
+      </div>
+      <div className="field">
+        <label>Description</label>
+        <textarea value={description} onChange={(event) => setDescription(event.target.value)} rows={4} placeholder="Add more detail..." />
       </div>
       <div className="field">
         <label>Importance</label>
-        <select value={importance} onChange={(event) => setImportance(event.target.value)}>
+        <select className={`importance-select importance-${importance}`} value={importance} onChange={(event) => setImportance(event.target.value)}>
           <option value="high">🔴 High — must do soon or blocks progress</option>
           <option value="medium">🟡 Medium — important but not urgent</option>
           <option value="low">🟢 Low — nice to have</option>
-        </select>
-      </div>
-      <div className="field">
-        <label>Priority dot</label>
-        <select value={priority} onChange={(event) => setPriority(event.target.value)}>
-          <option value="high">🔴 High</option>
-          <option value="mid">🟠 Medium</option>
-          <option value="low">🟢 Low</option>
         </select>
       </div>
       <div className="modal-actions">

@@ -18,6 +18,12 @@ export const priorityClass = (priority) => (
   priority === 'high' ? 'p-high' : priority === 'low' ? 'p-low' : 'p-mid'
 );
 
+export const priorityFromImportance = (importance) => (
+  importance === 'high' ? 'high' : importance === 'low' ? 'low' : 'mid'
+);
+
+export const DEFAULT_PROJECT_COLOR = '#64748b';
+
 export const fileIcon = (type, name = '') => {
   const ext = name.split('.').pop()?.toLowerCase();
   if (!type && ext) {

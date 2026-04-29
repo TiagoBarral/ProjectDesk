@@ -1,11 +1,11 @@
 import { useState } from 'react';
-import { stats } from './helpers.js';
+import { DEFAULT_PROJECT_COLOR, stats } from './helpers.js';
 import FilesTab from './tabs/FilesTab.jsx';
 import NotesTab from './tabs/NotesTab.jsx';
 import TasksTab from './tabs/TasksTab.jsx';
 
 export default function ProjectDetail(props) {
-  const { project, activeTab, onBack, onTabChange, onUpdateProject, openModal } = props;
+  const { project, activeTab, onBack, onTabChange, onUpdateProject, onDeleteProject, openModal } = props;
   const projectStats = stats(project);
   const badgeClass = { active: 'badge-active', paused: 'badge-paused', planning: 'badge-planning' }[project.status] || 'badge-planning';
   const badgeLabel = { active: 'Active', paused: 'Paused', planning: 'Planning', done: 'Done' }[project.status] || project.status;
@@ -14,7 +14,7 @@ export default function ProjectDetail(props) {
     <main className="detail">
       <div className="topbar">
         <button className="back-btn" type="button" onClick={onBack}>← Back</button>
-        <div className="topbar-dot" style={{ background: project.color }} />
+        <div className="topbar-dot" style={{ background: DEFAULT_PROJECT_COLOR }} />
         <h2>{project.name}</h2>
         <span className={`badge ${badgeClass}`}>{badgeLabel}</span>
         <button
@@ -25,6 +25,15 @@ export default function ProjectDetail(props) {
           ))}
         >
           Edit
+        </button>
+        <button
+          className="ghost-btn danger-btn"
+          type="button"
+          onClick={() => openModal(({ onClose }) => (
+            <DeleteProjectModal project={project} onClose={onClose} onConfirm={onDeleteProject} />
+          ))}
+        >
+          Delete
         </button>
         <div className="tabs">
           <button className={`tab ${activeTab === 'tasks' ? 'active' : ''}`} type="button" onClick={() => onTabChange('tasks')}>Tasks</button>
@@ -41,14 +50,33 @@ export default function ProjectDetail(props) {
   );
 }
 
+function DeleteProjectModal({ project, onClose, onConfirm }) {
+  const submit = () => {
+    onConfirm();
+    onClose();
+  };
+
+  return (
+    <>
+      <h2>Delete Project</h2>
+      <p className="modal-copy">
+        Delete {project.name}? This removes it from your project list and syncs the deletion across devices.
+      </p>
+      <div className="modal-actions">
+        <button className="mbtn mbtn-sec" type="button" onClick={onClose}>Cancel</button>
+        <button className="mbtn mbtn-danger" type="button" onClick={submit}>Delete Project</button>
+      </div>
+    </>
+  );
+}
+
 function EditProjectModal({ project, onClose, onSubmit }) {
   const [name, setName] = useState(project.name);
   const [status, setStatus] = useState(project.status);
-  const [color, setColor] = useState(project.color);
 
   const submit = () => {
     if (!name.trim()) return;
-    onSubmit({ name: name.trim(), status, color });
+    onSubmit({ name: name.trim(), status });
     onClose();
   };
 
@@ -67,22 +95,6 @@ function EditProjectModal({ project, onClose, onSubmit }) {
           <option value="planning">Planning</option>
           <option value="done">Done</option>
         </select>
-      </div>
-      <div className="field">
-        <label>Color</label>
-        <div className="color-row">
-          {['#5e5ce6', '#ff9500', '#34c759', '#ff2d55', '#007aff', '#af52de'].map((option) => (
-            <button
-              key={option}
-              className={`color-swatch ${color === option ? 'active' : ''}`}
-              type="button"
-              aria-label={`Use ${option}`}
-              style={{ background: option }}
-              onClick={() => setColor(option)}
-            />
-          ))}
-          <input className="color-input" type="color" value={color} onChange={(event) => setColor(event.target.value)} />
-        </div>
       </div>
       <div className="modal-actions">
         <button className="mbtn mbtn-sec" type="button" onClick={onClose}>Cancel</button>
