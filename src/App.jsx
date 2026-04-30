@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { cacheState, defaultData, loadRemoteState, loadState, mergeStateByUpdatedAt, normalizeData, saveState } from './lib/storage.js';
 import { logger } from './lib/logger.js';
+import { usePwaUpdate } from './lib/pwaUpdate.js';
 import Modal from './components/Modal.jsx';
 import PriorityDashboard from './components/PriorityDashboard.jsx';
 import ProjectCard from './components/ProjectCard.jsx';
@@ -103,6 +104,7 @@ export default function App() {
   const [modal, setModal] = useState(null);
   const dataRef = useRef(defaultData);
   const isRefreshingRef = useRef(false);
+  const { updateAvailable, reloadForUpdate } = usePwaUpdate();
 
   useEffect(() => {
     dataRef.current = data;
@@ -633,9 +635,19 @@ export default function App() {
           openModal={openModal}
         />
       )}
+      {updateAvailable && <UpdateToast onReload={reloadForUpdate} />}
       <SyncStatus state={syncState} lastSyncedAt={lastSyncedAt} />
       <Modal modal={modal} onClose={() => setModal(null)} />
     </>
+  );
+}
+
+function UpdateToast({ onReload }) {
+  return (
+    <div className="update-toast" role="status" aria-live="polite">
+      <span>Update available</span>
+      <button type="button" onClick={onReload}>Reload</button>
+    </div>
   );
 }
 

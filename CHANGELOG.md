@@ -9,8 +9,10 @@ This project follows the spirit of [Keep a Changelog](https://keepachangelog.com
 ### Added
 - Added a mobile-only floating Add Task button in project detail.
 - Added mobile task metadata lines that summarize priority and status.
+- Added a controlled PWA update toast with a Reload action for new deployments.
 
 ### Changed
+- Changed service worker navigation caching to network-first so Vercel deployments appear more reliably.
 - Changed successful sync feedback into a short toast so "Synced just now" no longer stays visible during normal use.
 - Improved mobile project detail layout with a stacked header, full-width tabs, simplified task cards, near full-screen modals, and sync indicator spacing.
 - Changed task creation in project detail from a header button to a compact inline add-task row.

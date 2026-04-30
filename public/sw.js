@@ -1,38 +1,77 @@
-const CACHE_NAME = 'project-ecosystem-v1';
-const APP_SHELL = ['/', '/index.html', '/manifest.webmanifest', '/icon.svg'];
+const STATIC_CACHE = 'projectdesk-static-v2';
+const RUNTIME_CACHE = 'projectdesk-runtime-v2';
 
-self.addEventListener('install', (event) => {
-  event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(APP_SHELL)));
-  self.skipWaiting();
+const isSupportedRequest = (requestUrl) => ['http:', 'https:'].includes(requestUrl.protocol);
+
+const isNavigationRequest = (request) =>
+  request.mode === 'navigate' || request.destination === 'document';
+
+const isStaticAssetRequest = (request, requestUrl) =>
+  requestUrl.pathname.startsWith('/assets/') ||
+  ['script', 'style', 'font', 'image'].includes(request.destination);
+
+self.addEventListener('install', () => {
+  // Do not call skipWaiting here. The app asks the waiting worker to activate
+  // after the user confirms the update.
 });
 
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((keys) =>
-      Promise.all(keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key))),
-    ),
+      Promise.all(
+        keys
+          .filter((key) => ![STATIC_CACHE, RUNTIME_CACHE].includes(key))
+          .map((key) => caches.delete(key)),
+      ),
+    ).then(() => self.clients.claim()),
   );
-  self.clients.claim();
+});
+
+self.addEventListener('message', (event) => {
+  if (event.data?.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
 });
 
 self.addEventListener('fetch', (event) => {
-  if (event.request.method !== 'GET') return;
-  const requestUrl = new URL(event.request.url);
-  if (!['http:', 'https:'].includes(requestUrl.protocol)) return;
+  const { request } = event;
+  if (request.method !== 'GET') return;
 
-  event.respondWith(
-    caches.match(event.request).then((cached) => {
-      const fetched = fetch(event.request)
-        .then((response) => {
-          if (response && response.status === 200) {
-            const copy = response.clone();
-            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
-          }
-          return response;
-        })
-        .catch(() => cached || caches.match('/index.html'));
+  const requestUrl = new URL(request.url);
+  if (!isSupportedRequest(requestUrl)) return;
 
-      return cached || fetched;
-    }),
-  );
+  if (isNavigationRequest(request)) {
+    event.respondWith(networkFirst(request));
+    return;
+  }
+
+  if (isStaticAssetRequest(request, requestUrl)) {
+    event.respondWith(cacheFirst(request));
+  }
 });
+
+async function networkFirst(request) {
+  try {
+    const response = await fetch(request);
+    if (response?.ok) {
+      const cache = await caches.open(RUNTIME_CACHE);
+      await cache.put(request, response.clone());
+    }
+    return response;
+  } catch (error) {
+    const cached = await caches.match(request);
+    return cached || caches.match('/');
+  }
+}
+
+async function cacheFirst(request) {
+  const cached = await caches.match(request);
+  if (cached) return cached;
+
+  const response = await fetch(request);
+  if (response?.ok) {
+    const cache = await caches.open(STATIC_CACHE);
+    await cache.put(request, response.clone());
+  }
+  return response;
+}
