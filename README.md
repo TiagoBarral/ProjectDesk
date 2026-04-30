@@ -19,7 +19,7 @@ Current release: `v0.6.0` functional alpha / early private beta.
 - Editable tasks and subtasks
 - Task priorities and importance levels
 - Project notes
-- File/link tracking per project
+- Persistent file uploads and link tracking per project
 - Completion stats
 - Responsive Android-friendly UI
 - Browser routes for project pages and tabs
@@ -129,7 +129,8 @@ ProjectDesk uses a storage adapter pattern:
 - If Supabase is unavailable, the app keeps working from localStorage.
 - Saves write to localStorage first, then sync scoped row changes to Supabase.
 - Remote refresh runs on startup, focus, visibility changes, a timed interval, and after successful saves.
-- Projects, tasks, and subtasks use `updated_at` and `deleted_at` so newer edits and soft deletes can converge across devices.
+- Projects, tasks, subtasks, and file metadata use `updated_at` and `deleted_at` so newer edits and soft deletes can converge across devices.
+- Uploaded file bytes are stored in Supabase Storage bucket `project-files`; localStorage stores metadata only.
 
 The storage layer lives in:
 
@@ -157,6 +158,14 @@ If your database was created before task descriptions were added, also run:
 ```text
 supabase/add-task-title-description.sql
 ```
+
+If your database was created before persistent file uploads were added, also run:
+
+```text
+supabase/add-file-storage.sql
+```
+
+This creates/updates the public `project-files` Storage bucket for the current no-auth phase.
 
 4. Copy your Supabase Project URL.
 5. Copy your anon public API key.

@@ -2,6 +2,7 @@ import { DEFAULT_PROJECT_COLOR, stats } from './helpers.js';
 
 export default function ProjectCard({ project, onOpen }) {
   const projectStats = stats(project);
+  const activeFileCount = project.files.filter((file) => !file.deleted_at).length;
   const radius = 32;
   const circumference = 2 * Math.PI * radius;
   const offset = circumference - (projectStats.pct / 100) * circumference;
@@ -43,7 +44,7 @@ export default function ProjectCard({ project, onOpen }) {
       <div className="card-stats">
         <div><div className="stat-val">{projectStats.total}</div><div className="stat-lbl">Tasks</div></div>
         <div><div className="stat-val">{projectStats.done}</div><div className="stat-lbl">Done</div></div>
-        <div><div className="stat-val">{project.files.length}</div><div className="stat-lbl">Files</div></div>
+        <div><div className="stat-val">{activeFileCount}</div><div className="stat-lbl">Files</div></div>
       </div>
       <div className="card-arrow">→</div>
     </button>

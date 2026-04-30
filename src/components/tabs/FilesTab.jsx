@@ -1,15 +1,32 @@
 import { useRef, useState } from 'react';
 import { fileIcon, fmtSize } from '../helpers.js';
+import { uploadProjectFile } from '../../lib/fileStorage.js';
 
-const uid = () => Math.random().toString(36).slice(2, 9);
+const uid = () => (window.crypto?.randomUUID ? window.crypto.randomUUID() : Math.random().toString(36).slice(2, 9));
 
 export default function FilesTab({ project, onAddFiles, onDeleteFile, onUpdateFile, openModal }) {
   const inputRef = useRef(null);
   const [dragOver, setDragOver] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState('');
+  const activeFiles = project.files.filter((file) => !file.deleted_at);
 
-  const handleFiles = (files) => {
+  const handleFiles = async (files) => {
     if (!files.length) return;
-    Promise.all(files.map(readFile)).then(onAddFiles);
+    setUploading(true);
+    setUploadError('');
+
+    try {
+      const uploadedFiles = [];
+      for (const file of files) {
+        uploadedFiles.push(await uploadProjectFile(project.id, file));
+      }
+      onAddFiles(uploadedFiles);
+    } catch (error) {
+      setUploadError(error.message || 'File upload failed.');
+    } finally {
+      setUploading(false);
+    }
   };
 
   return (
@@ -18,7 +35,7 @@ export default function FilesTab({ project, onAddFiles, onDeleteFile, onUpdateFi
         <div className="section-label">Files</div>
         <div className="btn-row">
           <button className="ghost-btn" type="button" onClick={() => openModal(({ onClose }) => <LinkFileModal onClose={onClose} onSubmit={onAddFiles} />)}>🔗 Link File</button>
-          <button className="add-btn" type="button" onClick={() => inputRef.current?.click()}>⬆ Upload</button>
+          <button className="add-btn" type="button" disabled={uploading} onClick={() => inputRef.current?.click()}>{uploading ? 'Uploading...' : '⬆ Upload'}</button>
         </div>
       </div>
       <input
@@ -46,15 +63,16 @@ export default function FilesTab({ project, onAddFiles, onDeleteFile, onUpdateFi
         }}
       >
         <div className="drop-icon">📂</div>
-        <strong>Drag & drop files here</strong>
-        <p>Or click to browse · Files stored in this app</p>
+        <strong>{uploading ? 'Uploading files...' : 'Drag & drop files here'}</strong>
+        <p>Or click to browse · Files sync with Supabase Storage</p>
       </div>
-      <div className="warn-note">💡 Uploaded files are stored in this browser. Keep individual files under 1 MB for best performance.</div>
-      {!project.files.length ? (
+      <div className="warn-note">💡 Uploaded files are stored in Supabase Storage so they can be opened from desktop or mobile.</div>
+      {uploadError && <div className="warn-note danger-note">{uploadError}</div>}
+      {!activeFiles.length ? (
         <div className="empty">No files yet.</div>
       ) : (
         <div className="file-grid">
-          {project.files.map((file) => (
+          {activeFiles.map((file) => (
             <FileCard
               key={file.id}
               file={file}
@@ -71,6 +89,7 @@ export default function FilesTab({ project, onAddFiles, onDeleteFile, onUpdateFi
 }
 
 function FileCard({ file, onDelete, onEdit }) {
+  const fileUrl = file.public_url || file.path;
   const meta = file.kind === 'link' ? file.path : fmtSize(file.size);
   const openFile = () => {
     if (file.kind === 'link') {
@@ -78,11 +97,8 @@ function FileCard({ file, onDelete, onEdit }) {
       window.open(target, '_blank', 'noopener,noreferrer');
       return;
     }
-    if (file.data) {
-      const anchor = document.createElement('a');
-      anchor.href = file.data;
-      anchor.download = file.name;
-      anchor.click();
+    if (fileUrl) {
+      window.open(fileUrl, '_blank', 'noopener,noreferrer');
     }
   };
 
@@ -91,7 +107,7 @@ function FileCard({ file, onDelete, onEdit }) {
       className="file-card"
       role="button"
       tabIndex={0}
-      title={file.kind === 'link' ? file.path : file.name}
+      title={file.kind === 'link' ? file.path : fileUrl || file.name}
       onClick={openFile}
       onKeyDown={(event) => (event.key === 'Enter' || event.key === ' ') && openFile()}
     >
@@ -148,7 +164,17 @@ function LinkFileModal({ onClose, onSubmit }) {
   const submit = () => {
     if (!path.trim()) return;
     const displayName = name.trim() || path.trim().split(/[\\/]/).pop();
-    onSubmit([{ id: uid(), name: displayName, kind: 'link', path: path.trim(), date: new Date().toLocaleDateString() }]);
+    const timestamp = new Date();
+    onSubmit([{
+      id: uid(),
+      name: displayName,
+      kind: 'link',
+      path: path.trim(),
+      date: timestamp.toLocaleDateString(),
+      updated_at: timestamp.toISOString(),
+      deleted_at: null,
+      sync_pending: true,
+    }]);
     onClose();
   };
 
@@ -171,22 +197,4 @@ function LinkFileModal({ onClose, onSubmit }) {
       </div>
     </>
   );
-}
-
-function readFile(file) {
-  return new Promise((resolve) => {
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      resolve({
-        id: uid(),
-        name: file.name,
-        kind: 'upload',
-        mimeType: file.type,
-        size: file.size,
-        date: new Date().toLocaleDateString(),
-        data: event.target.result,
-      });
-    };
-    reader.readAsDataURL(file);
-  });
 }

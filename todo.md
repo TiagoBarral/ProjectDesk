@@ -8,10 +8,18 @@
 - [x] Run the current Supabase SQL schema/migrations in the Supabase SQL editor.
 - [x] Create a local `.env` with `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`.
 - [x] Restart the Vite dev server after adding `.env`.
+- [ ] Run `supabase/add-file-storage.sql` in the Supabase SQL editor.
+- [ ] Verify the `project-files` Supabase Storage bucket exists and is public for the current no-auth phase.
 - [ ] Verify desktop edits sync to Android.
 - [ ] Verify Android edits sync back to desktop.
 - [x] Add a visible sync/offline error state if Supabase save fails.
 - [x] Replace broad full-state saves with scoped row-level Supabase upserts where practical.
+
+## File Uploads
+- [ ] Test uploading a small file from desktop and opening it after refresh.
+- [ ] Test uploading a small file from Android and opening it on desktop.
+- [ ] Later, after login/auth exists, make the `project-files` bucket private and switch uploads to signed URLs.
+- [ ] Later, add physical Storage object cleanup after file metadata soft-delete is stable.
 
 ## Enable Supabase Sync Steps
 - [ ] Open the Supabase dashboard and create/select a project.

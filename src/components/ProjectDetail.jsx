@@ -7,6 +7,7 @@ import TasksTab from './tabs/TasksTab.jsx';
 export default function ProjectDetail(props) {
   const { project, activeTab, onBack, onTabChange, onUpdateProject, onDeleteProject, openModal } = props;
   const projectStats = stats(project);
+  const activeFileCount = project.files.filter((file) => !file.deleted_at).length;
   const badgeClass = { active: 'badge-active', paused: 'badge-paused', planning: 'badge-planning' }[project.status] || 'badge-planning';
   const badgeLabel = { active: 'Active', paused: 'Paused', planning: 'Planning', done: 'Done' }[project.status] || project.status;
 
@@ -38,7 +39,7 @@ export default function ProjectDetail(props) {
         <div className="tabs">
           <button className={`tab ${activeTab === 'tasks' ? 'active' : ''}`} type="button" onClick={() => onTabChange('tasks')}>Tasks</button>
           <button className={`tab ${activeTab === 'notes' ? 'active' : ''}`} type="button" onClick={() => onTabChange('notes')}>Notes</button>
-          <button className={`tab ${activeTab === 'files' ? 'active' : ''}`} type="button" onClick={() => onTabChange('files')}>Files{project.files.length ? ` · ${project.files.length}` : ''}</button>
+          <button className={`tab ${activeTab === 'files' ? 'active' : ''}`} type="button" onClick={() => onTabChange('files')}>Files{activeFileCount ? ` · ${activeFileCount}` : ''}</button>
         </div>
       </div>
       <div className="content">

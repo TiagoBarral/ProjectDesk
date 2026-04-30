@@ -557,18 +557,51 @@ export default function App() {
   };
 
   const addFiles = (projectId, files) => {
-    updateProject(projectId, (project) => ({ ...project, files: [...project.files, ...files] }));
+    const timestamp = nowIso();
+    const nextFiles = files.map((file) => ({
+      ...file,
+      id: file.id || uid(),
+      updated_at: file.updated_at || timestamp,
+      deleted_at: file.deleted_at || null,
+      sync_pending: true,
+    }));
+
+    updateProject(
+      projectId,
+      (project) => ({ ...project, files: [...project.files, ...nextFiles] }),
+      { files: nextFiles.map((file) => file.id) },
+      { markProjectPending: false },
+    );
   };
 
   const deleteFile = (projectId, fileId) => {
-    updateProject(projectId, (project) => ({ ...project, files: project.files.filter((file) => file.id !== fileId) }));
+    const timestamp = nowIso();
+    updateProject(
+      projectId,
+      (project) => ({
+        ...project,
+        files: project.files.map((file) => (
+          file.id === fileId ? { ...file, deleted_at: timestamp, updated_at: timestamp, sync_pending: true } : file
+        )),
+      }),
+      { files: [fileId] },
+      { markProjectPending: false },
+    );
   };
 
   const updateFile = (projectId, fileId, updates) => {
-    updateProject(projectId, (project) => ({
-      ...project,
-      files: project.files.map((file) => (file.id === fileId ? { ...file, ...updates } : file)),
-    }));
+    const timestamp = nowIso();
+    updateProject(
+      projectId,
+      (project) => ({
+        ...project,
+        files: project.files.map((file) => (
+          file.id === fileId ? { ...file, ...updates, updated_at: timestamp, sync_pending: true } : file
+        )),
+      }),
+      { files: [fileId] },
+      { markProjectPending: false },
+    );
   };
 
   const showSaved = () => {

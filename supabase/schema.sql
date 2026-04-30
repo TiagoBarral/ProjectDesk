@@ -48,14 +48,53 @@ create table if not exists public.files (
   name text not null,
   kind text not null default 'link',
   path text,
+  storage_bucket text,
+  storage_path text,
+  public_url text,
   mime_type text,
   size_bytes bigint,
   date_label text,
-  data_url text,
+  data_url text, -- legacy local-only uploads; new uploads use Supabase Storage metadata above.
   sort_order integer not null default 0,
   created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now()
+  updated_at timestamptz not null default now(),
+  deleted_at timestamptz
 );
+
+insert into storage.buckets (id, name, public)
+values ('project-files', 'project-files', true)
+on conflict (id) do update set public = excluded.public;
+
+do $$
+begin
+  if not exists (
+    select 1 from pg_policies
+    where schemaname = 'storage' and tablename = 'objects' and policyname = 'ProjectDesk public read project files'
+  ) then
+    create policy "ProjectDesk public read project files"
+      on storage.objects for select
+      using (bucket_id = 'project-files');
+  end if;
+
+  if not exists (
+    select 1 from pg_policies
+    where schemaname = 'storage' and tablename = 'objects' and policyname = 'ProjectDesk anonymous upload project files'
+  ) then
+    create policy "ProjectDesk anonymous upload project files"
+      on storage.objects for insert
+      with check (bucket_id = 'project-files');
+  end if;
+
+  if not exists (
+    select 1 from pg_policies
+    where schemaname = 'storage' and tablename = 'objects' and policyname = 'ProjectDesk anonymous update project files'
+  ) then
+    create policy "ProjectDesk anonymous update project files"
+      on storage.objects for update
+      using (bucket_id = 'project-files')
+      with check (bucket_id = 'project-files');
+  end if;
+end $$;
 
 create or replace function public.set_updated_at()
 returns trigger as $$

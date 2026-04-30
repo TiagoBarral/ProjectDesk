@@ -109,7 +109,25 @@ export function normalizeData(data) {
         updated_at: project.updated_at || null,
         deleted_at: project.deleted_at || null,
         sync_pending: Boolean(project.sync_pending),
-        files: Array.isArray(project.files) ? project.files : [],
+        files: (Array.isArray(project.files) ? project.files : []).map((file, fileIndex) => {
+          const fileName = file.name || file.path || file.public_url || 'Untitled file';
+          const fileId = ensureUuid(file.id, `file:${projectId}:${fileIndex}:${fileName}`);
+          return {
+            id: fileId,
+            name: fileName,
+            kind: file.kind || 'link',
+            path: file.path || file.public_url || '',
+            mimeType: file.mimeType || file.mime_type || '',
+            size: file.size ?? file.size_bytes ?? 0,
+            date: file.date || file.date_label || '',
+            storage_bucket: file.storage_bucket || '',
+            storage_path: file.storage_path || '',
+            public_url: file.public_url || '',
+            updated_at: file.updated_at || null,
+            deleted_at: file.deleted_at || null,
+            sync_pending: Boolean(file.sync_pending),
+          };
+        }),
         tasks: (project.tasks || []).map((task, taskIndex) => {
           const taskTitle = task.title || task.text || '';
           const taskId = ensureUuid(task.id, `task:${projectId}:${taskIndex}:${taskTitle}`);
@@ -203,6 +221,7 @@ export function mergeStateByUpdatedAt(localState, remoteState) {
       return {
         ...clearSyncPending(projectBase),
         sync_pending: projectBase === localProject ? localProject.sync_pending : false,
+        files: mergeItemsByUpdatedAt(localProject.files || [], remoteProject.files || []),
         tasks: mergeTasksByUpdatedAt(localProject.tasks || [], remoteProject.tasks || []),
       };
     }).filter(Boolean),
@@ -279,9 +298,14 @@ function composeData({ projects, tasks, subtasks, files }) {
         kind: file.kind || 'link',
         path: file.path || '',
         mimeType: file.mime_type || file.mimeType || '',
-        size: file.size_bytes || file.size || 0,
+        size: file.size_bytes ?? file.size ?? 0,
         date: file.date_label || file.date || '',
-        data: file.data_url || file.data || '',
+        storage_bucket: file.storage_bucket || '',
+        storage_path: file.storage_path || '',
+        public_url: file.public_url || '',
+        updated_at: file.updated_at || null,
+        deleted_at: file.deleted_at || null,
+        sync_pending: false,
       })),
       tasks: (tasksByProject[project.id] || []).map((task) => ({
         id: task.id,
@@ -405,18 +429,21 @@ async function syncStateToSupabase(data, changed) {
   logger.info('sync: saving', {
     projectCount: rows.projects.length,
     taskCount: rows.tasks.length,
+    fileCount: rows.files.length,
   });
 
   const results = await Promise.all([
     upsertFreshRows('projects', rows.projects),
     upsertFreshRows('tasks', rows.tasks),
     upsertFreshRows('subtasks', rows.subtasks),
+    upsertFreshRows('files', rows.files),
   ]);
 
   logger.info('sync: saved', {
     projectCount: results[0],
     taskCount: results[1],
     subtaskCount: results[2],
+    fileCount: results[3],
   });
 }
 
@@ -425,6 +452,7 @@ function flattenData(data, changed) {
   const projects = [];
   const tasks = [];
   const subtasks = [];
+  const files = [];
 
   data.projects.forEach((project, projectIndex) => {
     const projectId = ensureUuid(project.id, `project:${projectIndex}:${project.name || ''}`);
@@ -441,6 +469,27 @@ function flattenData(data, changed) {
         deleted_at: project.deleted_at || null,
       });
     }
+    project.files.forEach((file, fileIndex) => {
+      const fileName = file.name || file.path || file.public_url || '';
+      const fileId = ensureUuid(file.id, `file:${projectId}:${fileIndex}:${fileName}`);
+      if (shouldSync(scope, 'files', fileId)) {
+        files.push({
+          id: fileId,
+          project_id: projectId,
+          name: fileName || 'Untitled file',
+          kind: file.kind || 'link',
+          path: file.path || file.public_url || '',
+          mime_type: file.mimeType || file.mime_type || '',
+          size_bytes: file.size ?? file.size_bytes ?? 0,
+          date_label: file.date || file.date_label || '',
+          storage_bucket: file.storage_bucket || null,
+          storage_path: file.storage_path || null,
+          public_url: file.public_url || null,
+          updated_at: file.updated_at || null,
+          deleted_at: file.deleted_at || null,
+        });
+      }
+    });
     project.tasks.forEach((task, taskIndex) => {
       const taskTitle = task.title || task.text || '';
       const taskId = ensureUuid(task.id, `task:${projectId}:${taskIndex}:${taskTitle}`);
@@ -474,7 +523,7 @@ function flattenData(data, changed) {
     });
   });
 
-  return { projects, tasks, subtasks };
+  return { projects, tasks, subtasks, files };
 }
 
 function createSyncScope(changed) {
@@ -483,6 +532,7 @@ function createSyncScope(changed) {
     projects: new Set(changed.projects || []),
     tasks: new Set(changed.tasks || []),
     subtasks: new Set(changed.subtasks || []),
+    files: new Set(changed.files || []),
   };
 }
 
