@@ -14,6 +14,7 @@ function syncedLabel(lastSyncedAt, now) {
 
 export default function SyncStatus({ state, lastSyncedAt }) {
   const [now, setNow] = useState(() => new Date());
+  const [showSuccess, setShowSuccess] = useState(false);
 
   useEffect(() => {
     const timer = window.setInterval(() => setNow(new Date()), 30000);
@@ -24,6 +25,19 @@ export default function SyncStatus({ state, lastSyncedAt }) {
     setNow(new Date());
   }, [lastSyncedAt, state]);
 
+  useEffect(() => {
+    if (state !== 'synced' && state !== 'idle') {
+      setShowSuccess(false);
+      return undefined;
+    }
+
+    if (!lastSyncedAt) return undefined;
+
+    setShowSuccess(true);
+    const timer = window.setTimeout(() => setShowSuccess(false), 2400);
+    return () => window.clearTimeout(timer);
+  }, [lastSyncedAt, state]);
+
   const label = useMemo(() => {
     if (state === 'syncing') return 'Syncing...';
     if (state === 'offline') return 'Offline';
@@ -31,11 +45,13 @@ export default function SyncStatus({ state, lastSyncedAt }) {
     return syncedLabel(lastSyncedAt, now);
   }, [lastSyncedAt, now, state]);
 
-  const isVisible = state !== 'idle' || Boolean(lastSyncedAt);
+  const isPersistent = state === 'syncing' || state === 'offline' || state === 'error';
+  const isVisible = isPersistent || showSuccess;
+  const displayState = showSuccess && (state === 'idle' || state === 'synced') ? 'synced' : state;
 
   return (
-    <div className={`sync-bar ${isVisible ? 'visible' : ''} ${state}`}>
-      <div className={`sync-dot ${state === 'idle' ? 'synced' : state}`} />
+    <div className={`sync-bar ${isVisible ? 'visible' : ''} ${displayState}`}>
+      <div className={`sync-dot ${displayState === 'idle' ? 'synced' : displayState}`} />
       <span>{label}</span>
     </div>
   );
