@@ -600,7 +600,7 @@ export default function App() {
                 <NewProjectModal onClose={onClose} onSubmit={addProject} />
               ))}
             >
-              <span className="new-project-icon">+</span>
+              <span className="new-project-icon" aria-hidden="true" />
               <span className="new-project-label">New Project</span>
             </button>
             {projects.map((project) => (

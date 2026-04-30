@@ -24,7 +24,6 @@ export default function TasksTab({
     <>
       <div className="section-header">
         <div className="section-label">Tasks</div>
-        <button className="add-btn" type="button" onClick={() => openModal(({ onClose }) => <AddTaskModal onClose={onClose} onSubmit={onAddTask} />)}>+ Add Task</button>
       </div>
       {projectStats.total > 0 && (
         <div className="prog-row">
@@ -32,7 +31,12 @@ export default function TasksTab({
           <span className="prog-txt">{projectStats.done} / {projectStats.total} · {projectStats.pct}%</span>
         </div>
       )}
-      {!openTasks.length && !doneTasks.length && <div className="empty">No tasks yet.</div>}
+      <button className="add-task-card" type="button" onClick={() => openModal(({ onClose }) => <AddTaskModal onClose={onClose} onSubmit={onAddTask} />)}>
+        <span className="add-task-icon" aria-hidden="true" />
+        <span className="add-task-dot-spacer" aria-hidden="true" />
+        <span className="add-task-label">Add Task</span>
+      </button>
+      <button className="mobile-add-task-fab" type="button" aria-label="Add task" onClick={() => openModal(({ onClose }) => <AddTaskModal onClose={onClose} onSubmit={onAddTask} />)} />
       {openTasks.map((task) => (
         <TaskCard
           key={task.id}
@@ -104,6 +108,7 @@ function TaskCard({
         <button className={`task-check ${task.done ? 'done' : ''}`} type="button" aria-label="Toggle task" onClick={(event) => { event.stopPropagation(); onToggleTask(task.id); }} />
         <span className={`pdot ${priorityClass(priorityFromImportance(task.importance || 'medium'))}`} />
         <button className={`task-text ${task.done ? 'done' : ''}`} type="button" onClick={(event) => { event.stopPropagation(); openTaskDetail(); }}>{task.title}</button>
+        <span className="mobile-task-meta">{importanceLabel(task.importance)} • {task.done ? 'Done' : 'Active'}</span>
         <ImportanceBadge importance={task.importance || 'medium'} />
         {!!task.subtasks.length && <span className="sub-count">{doneSubtasks}/{task.subtasks.length}</span>}
         <div className="task-actions" onClick={(event) => event.stopPropagation()}>
@@ -179,6 +184,10 @@ function TaskCard({
       )}
     </div>
   );
+}
+
+function importanceLabel(importance) {
+  return { high: 'High', medium: 'Medium', low: 'Low' }[importance || 'medium'] || 'Medium';
 }
 
 function AddTaskModal({ onClose, onSubmit }) {

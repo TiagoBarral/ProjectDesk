@@ -6,6 +6,15 @@ This project follows the spirit of [Keep a Changelog](https://keepachangelog.com
 
 ## [Unreleased]
 
+### Added
+- Added a mobile-only floating Add Task button in project detail.
+- Added mobile task metadata lines that summarize priority and status.
+
+### Changed
+- Improved mobile project detail layout with a stacked header, full-width tabs, simplified task cards, near full-screen modals, and sync indicator spacing.
+- Changed task creation in project detail from a header button to a compact inline add-task row.
+- Reduced Priority Dashboard task title weight for calmer scanning.
+
 ## [0.6.0] - 2026-04-29
 
 ### Added

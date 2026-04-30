@@ -21,7 +21,7 @@ export default function ProjectDetail(props) {
           className="ghost-btn topbar-edit"
           type="button"
           onClick={() => openModal(({ onClose }) => (
-            <EditProjectModal project={project} onClose={onClose} onSubmit={onUpdateProject} />
+            <EditProjectModal project={project} onClose={onClose} onSubmit={onUpdateProject} onDelete={onDeleteProject} />
           ))}
         >
           Edit
@@ -70,13 +70,19 @@ function DeleteProjectModal({ project, onClose, onConfirm }) {
   );
 }
 
-function EditProjectModal({ project, onClose, onSubmit }) {
+function EditProjectModal({ project, onClose, onSubmit, onDelete }) {
   const [name, setName] = useState(project.name);
   const [status, setStatus] = useState(project.status);
 
   const submit = () => {
     if (!name.trim()) return;
     onSubmit({ name: name.trim(), status });
+    onClose();
+  };
+
+  const deleteProject = () => {
+    if (!window.confirm(`Delete ${project.name}? This removes it from your project list and syncs the deletion across devices.`)) return;
+    onDelete();
     onClose();
   };
 
@@ -96,6 +102,7 @@ function EditProjectModal({ project, onClose, onSubmit }) {
           <option value="done">Done</option>
         </select>
       </div>
+      <button className="mobile-delete-project mbtn mbtn-danger" type="button" onClick={deleteProject}>Delete Project</button>
       <div className="modal-actions">
         <button className="mbtn mbtn-sec" type="button" onClick={onClose}>Cancel</button>
         <button className="mbtn mbtn-pri" type="button" onClick={submit}>Save Project</button>
