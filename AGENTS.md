@@ -27,6 +27,7 @@ Core goals:
 
 - Preserve the current visual design unless the user explicitly asks for a redesign.
 - Keep the UI quiet, practical, and mobile-friendly.
+- Treat desktop and mobile as different UX contexts. Preserve desktop workflows where they work, and use mobile-specific patterns when phone ergonomics require a different layout or interaction.
 - Prefer simple, local patterns over introducing new libraries.
 - Keep localStorage as the fallback/offline cache.
 - Do not add authentication until the user asks for it.
