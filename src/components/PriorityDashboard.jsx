@@ -154,9 +154,8 @@ export default function PriorityDashboard({ projects, filters, onFiltersChange, 
                 <span className="proj-chip">{task.projectName}</span>
                 <ImportanceBadge importance={task.importance} />
                 <span className={`ptask-status ${task.done ? '' : 'active'}`}>{task.done ? 'Done' : 'Active'}</span>
-                <span className="mobile-task-dots" aria-label={`${task.importance} priority, ${task.done ? 'done' : 'active'}`}>
+                <span className="mobile-task-dots" aria-label={`${task.importance} priority`}>
                   <span className={`mobile-dot mobile-dot-priority ${task.importance}`} title={`${task.importance} priority`} />
-                  <span className={`mobile-dot mobile-dot-status ${task.done ? 'done' : 'active'}`} title={task.done ? 'Done' : 'Active'} />
                 </span>
               </div>
             ))}
