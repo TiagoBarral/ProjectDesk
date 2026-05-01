@@ -21,6 +21,10 @@ This project follows the spirit of [Keep a Changelog](https://keepachangelog.com
 - Changed task creation in project detail from a header button to a compact inline add-task row.
 - Reduced Priority Dashboard task title weight for calmer scanning.
 
+### Fixed
+- Prevented uploaded files from appearing before their Supabase metadata row is saved.
+- Prevented remote refresh from treating file metadata load errors as an empty file list.
+
 ## [0.6.0] - 2026-04-29
 
 ### Added

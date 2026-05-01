@@ -35,6 +35,27 @@ export async function uploadProjectFile(projectId, file) {
 
   const { data } = supabase.storage.from(FILE_BUCKET).getPublicUrl(storagePath);
   const publicUrl = data?.publicUrl || '';
+  const metadata = {
+    id: fileId,
+    project_id: projectId,
+    name: file.name,
+    kind: 'upload',
+    path: publicUrl,
+    storage_bucket: FILE_BUCKET,
+    storage_path: storagePath,
+    public_url: publicUrl,
+    mime_type: file.type || '',
+    size_bytes: file.size,
+    date_label: uploadedAt.toLocaleDateString(),
+    updated_at: uploadedAt.toISOString(),
+    deleted_at: null,
+  };
+
+  const { error: metadataError } = await supabase
+    .from('files')
+    .upsert(metadata, { onConflict: 'id' });
+
+  if (metadataError) throw metadataError;
 
   return {
     id: fileId,
@@ -49,6 +70,6 @@ export async function uploadProjectFile(projectId, file) {
     date: uploadedAt.toLocaleDateString(),
     updated_at: uploadedAt.toISOString(),
     deleted_at: null,
-    sync_pending: true,
+    sync_pending: false,
   };
 }

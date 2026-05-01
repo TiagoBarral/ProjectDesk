@@ -185,6 +185,7 @@ export async function loadRemoteState({ throwOnError = false } = {}) {
 
     const filesResult = await supabase.from('files').select('*');
     if (filesResult.error) {
+      if (throwOnError) throw filesResult.error;
       logger.warn('Supabase files load error', filesResult.error);
     }
 
