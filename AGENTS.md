@@ -194,6 +194,21 @@ When a GitHub repo is connected:
 - If a PR is opened, target `main` and include what changed, why it changed, and how it was tested.
 - Delete short-lived branches after merge.
 
+## Pre-Commit User Testing Gate
+
+Before committing implementation changes:
+
+- Stop and ask the user to test the implementation.
+- Provide a short, concrete testing guide that explains:
+  - what changed
+  - where to look in the app
+  - the main user flows to test
+  - what should be different from before
+  - any known limitations or specific edge cases to check
+- Do not commit until the user confirms the implementation is acceptable, unless the user explicitly says to commit without testing.
+- This applies especially to UI, routing, sync, storage, PWA, mobile, and Supabase changes.
+- Documentation-only edits may be committed without a manual app test when no app behavior changed.
+
 Before committing or opening a PR:
 
 - Run `npm run build`.
