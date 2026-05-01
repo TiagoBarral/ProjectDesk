@@ -95,10 +95,20 @@ function slugify(value) {
 
 export function normalizeData(data) {
   const safe = data && Array.isArray(data.projects) ? data : defaultData;
+  const usedProjectSlugs = new Set();
+
   return {
     projects: safe.projects.map((project, projectIndex) => {
       const projectId = ensureUuid(project.id, `project:${projectIndex}:${project.name || ''}`);
-      const projectSlug = slugify(project.slug) || slugify(project.name) || projectId;
+      const baseSlug = slugify(project.slug) || slugify(project.name) || projectId;
+      let projectSlug = baseSlug;
+      let slugSuffix = 2;
+      while (!project.deleted_at && usedProjectSlugs.has(projectSlug)) {
+        projectSlug = `${baseSlug}-${slugSuffix}`;
+        slugSuffix += 1;
+      }
+      if (!project.deleted_at) usedProjectSlugs.add(projectSlug);
+
       return {
         id: projectId,
         slug: projectSlug,

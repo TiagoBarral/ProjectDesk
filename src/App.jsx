@@ -60,15 +60,25 @@ function projectPath(project, projects, tab = 'tasks') {
 
 function routeFromLocation() {
   const parts = window.location.pathname.split('/').filter(Boolean).map(decodeURIComponent);
-  if (parts[0] === 'projects' && parts[1]) {
-    return { view: 'detail', routeProjectParam: parts[1], activeTab: tabs.includes(parts[2]) ? parts[2] : 'tasks' };
+  if (!parts.length) {
+    return { view: 'home', routeProjectParam: null, activeTab: 'tasks' };
   }
-  return { view: 'home', routeProjectParam: null, activeTab: 'tasks' };
+  if (parts[0] === 'projects' && parts[1]) {
+    if (parts[2] && !tabs.includes(parts[2])) {
+      return { view: 'notFound', routeProjectParam: parts[1], activeTab: 'tasks' };
+    }
+    return { view: 'detail', routeProjectParam: parts[1], activeTab: parts[2] || 'tasks' };
+  }
+  if (parts[0] === 'projects') {
+    return { view: 'home', routeProjectParam: null, activeTab: 'tasks' };
+  }
+  return { view: 'notFound', routeProjectParam: null, activeTab: 'tasks' };
 }
 
 function routePath({ view, routeProjectParam, activeTab, project, projects }) {
   if (view === 'detail' && project && projects) return projectPath(project, projects, activeTab || 'tasks');
   if (view === 'detail' && routeProjectParam) return `/projects/${encodeURIComponent(routeProjectParam)}/${activeTab || 'tasks'}`;
+  if (view === 'notFound') return window.location.pathname || '/not-found';
   return '/';
 }
 
@@ -269,9 +279,7 @@ export default function App() {
         path: window.location.pathname,
         projectCount: projects.length,
       });
-      window.history.replaceState(null, '', '/');
-      setView('home');
-      setRouteProjectParam(null);
+      setView('notFound');
       setActiveTab('tasks');
     }
   }, [hasHydrated, isInitializing, view, routeProjectParam, projects, pendingRoute]);
@@ -611,7 +619,11 @@ export default function App() {
 
   return (
     <>
-      {view === 'home' || !detailProject ? (
+      {view === 'notFound' ? (
+        <NotFoundPage onGoHome={goHome} />
+      ) : view === 'detail' && !detailProject ? (
+        <RouteLoading />
+      ) : view === 'home' ? (
         <main className="home">
           <PriorityDashboard
             projects={projects}
@@ -650,6 +662,7 @@ export default function App() {
           project={detailProject}
           activeTab={activeTab}
           onBack={goHome}
+          onHome={goHome}
           onTabChange={switchTab}
           onUpdateProject={(updates) => updateProjectMeta(detailProject.id, updates)}
           onDeleteProject={() => deleteProject(detailProject.id)}
@@ -674,6 +687,31 @@ export default function App() {
       <SyncStatus state={syncState} lastSyncedAt={lastSyncedAt} />
       <Modal modal={modal} onClose={() => setModal(null)} />
     </>
+  );
+}
+
+function RouteLoading() {
+  return (
+    <main className="not-found">
+      <div className="not-found-card">
+        <div className="not-found-kicker">Loading route</div>
+        <h1>Opening project...</h1>
+        <p>ProjectDesk is checking the saved project route.</p>
+      </div>
+    </main>
+  );
+}
+
+function NotFoundPage({ onGoHome }) {
+  return (
+    <main className="not-found">
+      <div className="not-found-card">
+        <div className="not-found-kicker">404</div>
+        <h1>Project route not found</h1>
+        <p>This project link may have been renamed, deleted, or mistyped.</p>
+        <button className="mbtn mbtn-pri" type="button" onClick={onGoHome}>Back to Projects</button>
+      </div>
+    </main>
   );
 }
 

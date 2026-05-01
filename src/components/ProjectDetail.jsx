@@ -5,7 +5,7 @@ import NotesTab from './tabs/NotesTab.jsx';
 import TasksTab from './tabs/TasksTab.jsx';
 
 export default function ProjectDetail(props) {
-  const { project, activeTab, onBack, onTabChange, onUpdateProject, onDeleteProject, openModal } = props;
+  const { project, activeTab, onBack, onHome, onTabChange, onUpdateProject, onDeleteProject, openModal } = props;
   const projectStats = stats(project);
   const activeFileCount = project.files.filter((file) => !file.deleted_at).length;
   const badgeClass = { active: 'badge-active', paused: 'badge-paused', planning: 'badge-planning' }[project.status] || 'badge-planning';
@@ -17,6 +17,13 @@ export default function ProjectDetail(props) {
         <button className="back-btn" type="button" onClick={onBack}>← Back</button>
         <div className="topbar-dot" style={{ background: DEFAULT_PROJECT_COLOR }} />
         <h2>{project.name}</h2>
+        <nav className="breadcrumbs" aria-label="Breadcrumb">
+          <button type="button" onClick={onHome || onBack}>Projects</button>
+          <span>›</span>
+          <span title={project.name}>{project.name}</span>
+          <span>›</span>
+          <span>{activeTab[0].toUpperCase() + activeTab.slice(1)}</span>
+        </nav>
         <span className={`badge ${badgeClass}`}>{badgeLabel}</span>
         <button
           className="ghost-btn topbar-edit"

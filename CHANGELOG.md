@@ -9,6 +9,8 @@ This project follows the spirit of [Keep a Changelog](https://keepachangelog.com
 ### Added
 - Added persistent Supabase Storage uploads for project files.
 - Added Supabase file storage migration and setup notes for the `project-files` bucket.
+- Added a real not-found page for invalid project routes.
+- Added desktop breadcrumbs inside project detail pages.
 - Added a mobile dashboard filter sheet so filters no longer consume permanent screen space.
 - Added a mobile-only floating Add Task button in project detail.
 - Added mobile task metadata lines that summarize priority and status.
@@ -27,6 +29,8 @@ This project follows the spirit of [Keep a Changelog](https://keepachangelog.com
 - Reduced Priority Dashboard task title weight for calmer scanning.
 
 ### Fixed
+- Prevented unresolved project routes from silently falling back to the home page.
+- Normalized duplicate project slugs so active project routes remain unique.
 - Prevented uploaded files from appearing before their Supabase metadata row is saved.
 - Prevented remote refresh from treating file metadata load errors as an empty file list.
 

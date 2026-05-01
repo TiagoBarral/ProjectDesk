@@ -79,9 +79,9 @@
 
 ## Routing and Navigation
 - [ ] Keep testing name-based project routes after renames.
-- [ ] Add redirect handling for duplicate project-name slugs.
-- [ ] Add a 404/not-found state for invalid routes instead of silently going home.
-- [ ] Consider adding breadcrumb navigation inside project detail pages.
+- [x] Add redirect handling for duplicate project-name slugs.
+- [x] Add a 404/not-found state for invalid routes instead of silently going home.
+- [x] Consider adding breadcrumb navigation inside project detail pages.
 
 ## Mobile and PWA
 - [ ] Test install flow on Android from Chrome.
