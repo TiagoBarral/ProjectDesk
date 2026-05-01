@@ -621,26 +621,28 @@ export default function App() {
             onUpdateTask={updateTask}
             openModal={openModal}
           />
-          <div className="home-header">
-            <div>
-              <h1>Projects</h1>
-              <p>Manage tasks, notes, and files per project</p>
+          <div className="projects-section">
+            <div className="home-header">
+              <div>
+                <h1>Projects</h1>
+                <p>Manage tasks, notes, and files per project</p>
+              </div>
             </div>
-          </div>
-          <div className="card-grid">
-            <button
-              className="new-project-card"
-              type="button"
-              onClick={() => openModal(({ onClose }) => (
-                <NewProjectModal onClose={onClose} onSubmit={addProject} />
+            <div className="card-grid">
+              <button
+                className="new-project-card"
+                type="button"
+                onClick={() => openModal(({ onClose }) => (
+                  <NewProjectModal onClose={onClose} onSubmit={addProject} />
+                ))}
+              >
+                <span className="new-project-icon" aria-hidden="true" />
+                <span className="new-project-label">New Project</span>
+              </button>
+              {projects.map((project) => (
+                <ProjectCard key={project.id} project={project} onOpen={() => openProject(project.id)} />
               ))}
-            >
-              <span className="new-project-icon" aria-hidden="true" />
-              <span className="new-project-label">New Project</span>
-            </button>
-            {projects.map((project) => (
-              <ProjectCard key={project.id} project={project} onOpen={() => openProject(project.id)} />
-            ))}
+            </div>
           </div>
         </main>
       ) : (

@@ -16,6 +16,7 @@ const getAllTasks = (projects) => projects.flatMap((project) => (
 export default function PriorityDashboard({ projects, filters, onFiltersChange, onToggleTask, onUpdateTask, openModal }) {
   const [currentPage, setCurrentPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const allTasks = getAllTasks(projects);
   const order = { high: 0, medium: 1, low: 2 };
   const filteredTasks = useMemo(() => (
@@ -41,6 +42,11 @@ export default function PriorityDashboard({ projects, filters, onFiltersChange, 
   const pagedTasks = filteredTasks.slice(startIndex, startIndex + rowsPerPage);
   const showingStart = filteredTasks.length ? startIndex + 1 : 0;
   const showingEnd = Math.min(startIndex + rowsPerPage, filteredTasks.length);
+  const activeFilterCount = [
+    filters.importance !== 'all',
+    filters.project !== 'all',
+    filters.status !== 'active',
+  ].filter(Boolean).length;
 
   const openTaskDetails = (task) => {
     const project = projects.find((item) => item.id === task.projectId);
@@ -68,14 +74,19 @@ export default function PriorityDashboard({ projects, filters, onFiltersChange, 
       <div className="dash-title">Priority Dashboard</div>
       <div className="dash-sub">Focus on what matters most across all your projects</div>
       <div className="sum-grid">
-        <SummaryCard color="#dc2626" stripe="#ef4444" label="High Priority" value={summary.high} sub="active tasks" />
-        <SummaryCard color="#d97706" stripe="#f59e0b" label="Medium Priority" value={summary.medium} sub="active tasks" />
-        <SummaryCard color="#16a34a" stripe="#22c55e" label="Low Priority" value={summary.low} sub="active tasks" />
-        <SummaryCard color="var(--accent)" stripe="var(--accent)" label="Completed" value={summary.done} sub="tasks done" />
+        <SummaryCard color="#dc2626" stripe="#ef4444" label="High Priority" shortLabel="High" value={summary.high} sub="active tasks" />
+        <SummaryCard color="#d97706" stripe="#f59e0b" label="Medium Priority" shortLabel="Medium" value={summary.medium} sub="active tasks" />
+        <SummaryCard color="#16a34a" stripe="#22c55e" label="Low Priority" shortLabel="Low" value={summary.low} sub="active tasks" />
+        <SummaryCard color="var(--accent)" stripe="var(--accent)" label="Completed" shortLabel="Done" value={summary.done} sub="tasks done" />
+      </div>
+      <div className="mobile-filter-row">
+        <button className="mobile-filter-btn" type="button" onClick={() => setFiltersOpen(true)}>
+          Filters{activeFilterCount ? ` · ${activeFilterCount}` : ''}
+        </button>
       </div>
       <div className="filter-bar">
         <select className="filter-select" value={filters.importance} onChange={(event) => onFiltersChange({ importance: event.target.value })}>
-          <option value="all">All Importance</option>
+          <option value="all">All Priority</option>
           <option value="high">High</option>
           <option value="medium">Medium</option>
           <option value="low">Low</option>
@@ -90,6 +101,44 @@ export default function PriorityDashboard({ projects, filters, onFiltersChange, 
           <option value="all">All</option>
         </select>
       </div>
+      {filtersOpen && (
+        <div className="filter-sheet-backdrop" role="presentation" onClick={() => setFiltersOpen(false)}>
+          <div className="filter-sheet" role="dialog" aria-modal="true" aria-labelledby="filter-sheet-title" onClick={(event) => event.stopPropagation()}>
+            <div className="filter-sheet-head">
+              <h3 id="filter-sheet-title">Filters</h3>
+              <button className="filter-sheet-close" type="button" aria-label="Close filters" onClick={() => setFiltersOpen(false)}>×</button>
+            </div>
+            <label>
+              <span>Priority</span>
+              <select className="filter-select" value={filters.importance} onChange={(event) => onFiltersChange({ importance: event.target.value })}>
+                <option value="all">All Priority</option>
+                <option value="high">High</option>
+                <option value="medium">Medium</option>
+                <option value="low">Low</option>
+              </select>
+            </label>
+            <label>
+              <span>Project</span>
+              <select className="filter-select" value={filters.project} onChange={(event) => onFiltersChange({ project: event.target.value })}>
+                <option value="all">All Projects</option>
+                {projects.map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}
+              </select>
+            </label>
+            <label>
+              <span>Status</span>
+              <select className="filter-select" value={filters.status} onChange={(event) => onFiltersChange({ status: event.target.value })}>
+                <option value="active">Active</option>
+                <option value="completed">Completed</option>
+                <option value="all">All</option>
+              </select>
+            </label>
+            <div className="filter-sheet-actions">
+              <button className="mbtn mbtn-sec" type="button" onClick={() => onFiltersChange({ importance: 'all', project: 'all', status: 'active' })}>Reset</button>
+              <button className="mbtn mbtn-pri" type="button" onClick={() => setFiltersOpen(false)}>Apply</button>
+            </div>
+          </div>
+        </div>
+      )}
       <div className="ptask-table">
         {!filteredTasks.length ? (
           <div className="dash-empty">No tasks match these filters.</div>
@@ -127,11 +176,14 @@ export default function PriorityDashboard({ projects, filters, onFiltersChange, 
   );
 }
 
-function SummaryCard({ color, stripe, label, value, sub }) {
+function SummaryCard({ color, stripe, label, shortLabel, value, sub }) {
   return (
     <div className="sum-card">
       <div className="sum-card-accent" style={{ background: stripe }} />
-      <div className="sum-card-label" style={{ color }}>{label}</div>
+      <div className="sum-card-label" style={{ color }}>
+        <span className="sum-label-full">{label}</span>
+        <span className="sum-label-short">{shortLabel || label}</span>
+      </div>
       <div className="sum-card-val" style={{ color }}>{value}</div>
       <div className="sum-card-sub">{sub}</div>
     </div>

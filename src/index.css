@@ -24,7 +24,7 @@ button{appearance:none;}
 .update-toast{position:fixed;right:16px;bottom:calc(58px + env(safe-area-inset-bottom));z-index:130;background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:8px 10px 8px 14px;display:flex;align-items:center;gap:10px;box-shadow:0 10px 30px rgba(0,0,0,.12);font-size:12px;color:var(--text2);}
 .update-toast button{border:none;border-radius:12px;background:#4f7df3;color:#fff;font-weight:700;font-size:12px;padding:6px 10px;cursor:pointer;}
 .update-toast button:hover{background:#327fd1;}
-.home{padding:40px 32px;max-width:980px;margin:0 auto;animation:fadein .2s ease;}
+.home{padding:40px 32px;max-width:980px;margin:0 auto;animation:fadein .2s ease;display:flex;flex-direction:column;}
 .home-header{margin-bottom:36px;}
 .home-header h1{font-size:30px;font-weight:700;letter-spacing:-.5px;background:linear-gradient(135deg,#1d1d1f 30%,var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;color:transparent;}
 .home-header p{color:var(--text2);font-size:15px;margin-top:5px;}
@@ -190,11 +190,22 @@ button{appearance:none;}
 .sum-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px 22px;box-shadow:0 1px 4px rgba(0,0,0,.04);position:relative;overflow:hidden;}
 .sum-card-accent{position:absolute;top:0;left:0;right:0;height:3px;border-radius:var(--radius) var(--radius) 0 0;}
 .sum-card-label{font-size:12px;font-weight:600;margin-bottom:6px;}
+.sum-label-short{display:none;}
 .sum-card-val{font-size:34px;font-weight:800;letter-spacing:-.5px;line-height:1;}
 .sum-card-sub{font-size:11px;color:var(--text3);margin-top:4px;}
+.mobile-filter-row{display:none;}
 .filter-bar{display:flex;gap:10px;align-items:center;margin-bottom:14px;flex-wrap:wrap;}
 .filter-select{border:1px solid var(--border);border-radius:var(--radius-sm);padding:7px 12px;font-size:13px;background:var(--surface);color:var(--text);outline:none;cursor:pointer;font-family:inherit;transition:border-color .15s;box-shadow:0 1px 3px rgba(0,0,0,.04);min-height:38px;}
 .filter-select:focus{border-color:var(--accent);}
+.filter-sheet-backdrop{position:fixed;inset:0;z-index:190;background:rgba(0,0,0,.22);display:flex;align-items:flex-end;padding:10px;backdrop-filter:blur(5px);}
+.filter-sheet{width:100%;background:var(--surface);border:1px solid var(--border);border-radius:22px 22px 14px 14px;padding:18px;box-shadow:0 18px 56px rgba(0,0,0,.18);display:flex;flex-direction:column;gap:14px;}
+.filter-sheet-head{display:flex;align-items:center;justify-content:space-between;gap:12px;}
+.filter-sheet h3{font-size:18px;font-weight:750;letter-spacing:-.3px;}
+.filter-sheet-close{width:36px;height:36px;border-radius:50%;border:1px solid var(--border);background:var(--surface2);color:var(--text2);font-size:22px;line-height:1;cursor:pointer;}
+.filter-sheet label{display:flex;flex-direction:column;gap:7px;}
+.filter-sheet label span{font-size:12px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.05em;}
+.filter-sheet .filter-select{width:100%;min-height:48px;font-size:16px;}
+.filter-sheet-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding-top:4px;}
 .ptask-table{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.04);}
 .ptask-head{display:grid;grid-template-columns:24px minmax(0,1fr) minmax(0,130px) 110px 80px;gap:12px;padding:10px 16px;border-bottom:1px solid var(--border);background:var(--surface2);}
 .ptask-head span{font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;}
@@ -239,10 +250,35 @@ button{appearance:none;}
 .rows-select{border:1px solid var(--border);border-radius:var(--radius-sm);padding:7px 10px;font-size:12px;background:var(--surface);color:var(--text);outline:none;cursor:pointer;min-height:36px;}
 @media(max-width:800px){
   .home{padding:24px 16px 32px;max-width:100%;}
-  .sum-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;}
-  .sum-card{padding:16px;}
-  .sum-card-val{font-size:30px;}
+  .projects-section{order:1;margin-bottom:28px;}
+  .dash-section{order:2;margin-bottom:34px;}
+  .home-header{margin-bottom:18px;}
+  .sum-grid{grid-template-columns:repeat(4,minmax(0,1fr));gap:7px;margin-bottom:12px;}
+  .sum-card{padding:10px 8px;text-align:center;border-radius:14px;}
+  .sum-card-accent{height:2px;}
+  .sum-card-label{font-size:10px;margin-bottom:2px;white-space:nowrap;}
+  .sum-label-full{display:none;}
+  .sum-label-short{display:inline;}
+  .sum-card-val{font-size:22px;}
+  .sum-card-sub{display:none;}
   .card-grid{grid-template-columns:1fr;}
+  .project-card{padding:16px 18px;border-radius:17px;}
+  .card-top{grid-template-columns:minmax(0,1fr) 62px;margin-bottom:16px;gap:10px;}
+  .card-name{font-size:17px;margin-bottom:5px;-webkit-line-clamp:1;}
+  .ring-wrap{width:62px;height:62px;}
+  .ring-wrap svg{width:62px;height:62px;}
+  .ring-pct .num{font-size:14px;}
+  .ring-pct .lbl{font-size:8px;}
+  .card-stats{gap:18px;}
+  .stat-val{font-size:20px;}
+  .new-project-card{min-height:128px;border-radius:17px;gap:9px;}
+  .new-project-icon{width:40px;height:40px;}
+  .new-project-icon::before{width:16px;height:3px;}
+  .new-project-icon::after{width:3px;height:16px;}
+  .new-project-label{font-size:15px;}
+  .mobile-filter-row{display:block;margin-bottom:12px;}
+  .mobile-filter-btn{width:100%;min-height:44px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface);box-shadow:0 1px 4px rgba(0,0,0,.04);font-weight:700;color:var(--text);cursor:pointer;}
+  .filter-bar{display:none;}
   .filter-select{flex:1 1 160px;}
   .ptask-head{display:none;}
   .ptask-table{background:transparent;border:none;box-shadow:none;display:grid;gap:8px;overflow:visible;}
@@ -264,7 +300,7 @@ button{appearance:none;}
   .topbar-edit{order:2;margin-left:0;}
   .topbar > .danger-btn{display:none;}
   .tabs{order:3;margin-left:0;width:100%;display:grid;grid-template-columns:repeat(3,1fr);}
-  .tab{padding:8px 10px;}
+  .tab{padding:6px 8px;min-height:31px;font-size:12px;}
   .content{padding:18px 14px calc(104px + env(safe-area-inset-bottom));}
   .add-task-card{display:none;}
   .mobile-add-task-fab{position:fixed;right:18px;bottom:calc(18px + env(safe-area-inset-bottom));z-index:120;width:56px;height:56px;border-radius:50%;border:none;background:#4f7df3;color:#fff;box-shadow:0 12px 32px rgba(79,125,243,.35);display:block;cursor:pointer;}
@@ -301,13 +337,13 @@ button{appearance:none;}
   .home-header h1{font-size:28px;}
   .dash-section{margin-bottom:34px;}
   .dash-title{font-size:28px;}
-  .sum-grid{grid-template-columns:1fr 1fr;}
-  .sum-card{padding:14px;}
+  .sum-grid{grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;}
+  .sum-card{padding:9px 6px;}
   .sum-card-label{font-size:11px;}
-  .sum-card-val{font-size:28px;}
-  .project-card{padding:22px;}
-  .new-project-card{min-height:174px;}
-  .card-stats{gap:16px;}
+  .sum-card-val{font-size:21px;}
+  .project-card{padding:15px 16px;}
+  .new-project-card{min-height:116px;}
+  .card-stats{gap:15px;}
   .section-header{align-items:flex-start;}
   .btn-row{width:100%;}
   .btn-row .ghost-btn,.btn-row .add-btn{flex:1 1 130px;}
