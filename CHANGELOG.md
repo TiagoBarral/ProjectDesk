@@ -18,6 +18,7 @@ This project follows the spirit of [Keep a Changelog](https://keepachangelog.com
 - Changed uploaded file persistence from browser-only data URLs to metadata synced through Supabase.
 - Changed the mobile home layout to show Projects before the Priority Dashboard.
 - Made mobile project cards, project tabs, and Priority Dashboard summary cards more compact.
+- Tightened mobile project cards, task rows, and the dashboard filter sheet for denser phone use.
 - Changed service worker navigation caching to network-first so Vercel deployments appear more reliably.
 - Changed successful sync feedback into a short toast so "Synced just now" no longer stays visible during normal use.
 - Improved mobile project detail layout with a stacked header, full-width tabs, simplified task cards, near full-screen modals, and sync indicator spacing.

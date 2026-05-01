@@ -81,7 +81,9 @@ export default function PriorityDashboard({ projects, filters, onFiltersChange, 
       </div>
       <div className="mobile-filter-row">
         <button className="mobile-filter-btn" type="button" onClick={() => setFiltersOpen(true)}>
-          Filters{activeFilterCount ? ` · ${activeFilterCount}` : ''}
+          <span className="mobile-filter-icon" aria-hidden="true" />
+          <span>Filters</span>
+          {activeFilterCount ? <span className="mobile-filter-count">{activeFilterCount}</span> : null}
         </button>
       </div>
       <div className="filter-bar">
