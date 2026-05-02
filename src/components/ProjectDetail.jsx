@@ -7,10 +7,17 @@ import TasksTab from './tabs/TasksTab.jsx';
 
 export default function ProjectDetail(props) {
   const { project, activeTab, onBack, onHome, onTabChange, onUpdateProject, onDeleteProject, openModal } = props;
+  const [projectMenuOpen, setProjectMenuOpen] = useState(false);
   const projectStats = stats(project);
   const activeFileCount = project.files.filter((file) => !file.deleted_at).length;
   const badgeClass = { active: 'badge-active', paused: 'badge-paused', planning: 'badge-planning' }[project.status] || 'badge-planning';
   const badgeLabel = { active: 'Active', paused: 'Paused', planning: 'Planning', done: 'Done' }[project.status] || project.status;
+  const openEditProject = () => openModal(({ onClose }) => (
+    <EditProjectModal project={project} onClose={onClose} onSubmit={onUpdateProject} onDelete={onDeleteProject} openModal={openModal} />
+  ));
+  const openDeleteProject = () => openModal(({ onClose }) => (
+    <DeleteProjectModal project={project} onClose={onClose} onConfirm={onDeleteProject} />
+  ));
 
   return (
     <main className="detail">
@@ -29,21 +36,34 @@ export default function ProjectDetail(props) {
         <button
           className="ghost-btn topbar-edit"
           type="button"
-          onClick={() => openModal(({ onClose }) => (
-            <EditProjectModal project={project} onClose={onClose} onSubmit={onUpdateProject} onDelete={onDeleteProject} openModal={openModal} />
-          ))}
+          onClick={openEditProject}
         >
           Edit
         </button>
         <button
           className="ghost-btn danger-btn"
           type="button"
-          onClick={() => openModal(({ onClose }) => (
-            <DeleteProjectModal project={project} onClose={onClose} onConfirm={onDeleteProject} />
-          ))}
+          onClick={openDeleteProject}
         >
           Delete
         </button>
+        <div className="project-mobile-actions">
+          <button
+            className="mobile-menu-trigger"
+            type="button"
+            aria-label="Project actions"
+            aria-expanded={projectMenuOpen}
+            onClick={() => setProjectMenuOpen((open) => !open)}
+          >
+            ⋯
+          </button>
+          {projectMenuOpen && (
+            <div className="mobile-menu-panel">
+              <button type="button" onClick={() => { setProjectMenuOpen(false); openEditProject(); }}>Edit Project</button>
+              <button className="danger-menu-item" type="button" onClick={() => { setProjectMenuOpen(false); openDeleteProject(); }}>Delete Project</button>
+            </div>
+          )}
+        </div>
         <div className="tabs">
           <button className={`tab ${activeTab === 'tasks' ? 'active' : ''}`} type="button" onClick={() => onTabChange('tasks')}>Tasks</button>
           <button className={`tab ${activeTab === 'notes' ? 'active' : ''}`} type="button" onClick={() => onTabChange('notes')}>Notes</button>

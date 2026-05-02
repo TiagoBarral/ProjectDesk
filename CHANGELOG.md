@@ -21,6 +21,7 @@ This project follows the spirit of [Keep a Changelog](https://keepachangelog.com
 - Added a controlled PWA update toast with a Reload action for new deployments.
 
 ### Changed
+- Moved mobile task, file, and project secondary actions into compact overflow menus to reduce cramped phone layouts.
 - Changed uploaded file persistence from browser-only data URLs to metadata synced through Supabase.
 - Changed the mobile home layout to show Projects before the Priority Dashboard.
 - Made mobile project cards, project tabs, and Priority Dashboard summary cards more compact.

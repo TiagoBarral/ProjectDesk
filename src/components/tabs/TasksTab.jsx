@@ -90,6 +90,7 @@ function TaskCard({
   const [subText, setSubText] = useState('');
   const [editingSubtask, setEditingSubtask] = useState(null);
   const [editingText, setEditingText] = useState('');
+  const [menuOpen, setMenuOpen] = useState(false);
   const doneSubtasks = task.subtasks.filter((subtask) => subtask.done).length;
 
   const submitSubtask = () => {
@@ -100,6 +101,10 @@ function TaskCard({
 
   const openTaskDetail = () => openModal(({ onClose }) => (
     <TaskDetailModal project={project} task={task} onClose={onClose} onUpdateTask={(taskId, updates) => onUpdateTask(taskId, updates)} />
+  ));
+
+  const openEditTask = () => openModal(({ onClose }) => (
+    <TaskModal title="Edit Task" actionLabel="Save Task" task={task} onClose={onClose} onSubmit={(updates) => onUpdateTask(task.id, updates)} />
   ));
 
   return (
@@ -117,13 +122,30 @@ function TaskCard({
             className="icon-btn"
             type="button"
             aria-label="Edit task"
-            onClick={(event) => { event.stopPropagation(); openModal(({ onClose }) => (
-              <TaskModal title="Edit Task" actionLabel="Save Task" task={task} onClose={onClose} onSubmit={(updates) => onUpdateTask(task.id, updates)} />
-            )); }}
+            onClick={(event) => { event.stopPropagation(); openEditTask(); }}
           >
             ✎
           </button>
           <button className="icon-btn" type="button" aria-label="Delete task" onClick={(event) => { event.stopPropagation(); onDeleteTask(task.id); }}>✕</button>
+        </div>
+        <div className="mobile-action-menu" onClick={(event) => event.stopPropagation()}>
+          <button
+            className="mobile-menu-trigger"
+            type="button"
+            aria-label="Task actions"
+            aria-expanded={menuOpen}
+            onClick={() => setMenuOpen((open) => !open)}
+          >
+            ⋯
+          </button>
+          {menuOpen && (
+            <div className="mobile-menu-panel">
+              <button type="button" onClick={() => { setMenuOpen(false); onToggleTaskExpanded(task.id, true); }}>Add Subtask</button>
+              <button type="button" onClick={() => { setMenuOpen(false); openEditTask(); }}>Edit Task</button>
+              <button type="button" onClick={() => { setMenuOpen(false); onToggleTaskExpanded(task.id); }}>{task.expanded ? 'Hide Details' : 'Show Details'}</button>
+              <button className="danger-menu-item" type="button" onClick={() => { setMenuOpen(false); onDeleteTask(task.id); }}>Delete Task</button>
+            </div>
+          )}
         </div>
         <button className="expand-btn" type="button" aria-label="Expand task" onClick={(event) => { event.stopPropagation(); onToggleTaskExpanded(task.id); }}>
           {task.expanded ? '▲' : '▼'}

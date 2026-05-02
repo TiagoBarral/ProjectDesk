@@ -89,6 +89,7 @@ export default function FilesTab({ project, onAddFiles, onDeleteFile, onUpdateFi
 }
 
 function FileCard({ file, onDelete, onEdit }) {
+  const [menuOpen, setMenuOpen] = useState(false);
   const fileUrl = file.public_url || file.path;
   const meta = file.kind === 'link' ? file.path : fmtSize(file.size);
   const openFile = () => {
@@ -113,6 +114,24 @@ function FileCard({ file, onDelete, onEdit }) {
     >
       <button className="file-edit" type="button" onClick={(event) => { event.stopPropagation(); onEdit(); }}>✎</button>
       <button className="file-del" type="button" onClick={(event) => { event.stopPropagation(); onDelete(); }}>✕</button>
+      <div className="file-mobile-actions" onClick={(event) => event.stopPropagation()}>
+        <button
+          className="mobile-menu-trigger"
+          type="button"
+          aria-label="File actions"
+          aria-expanded={menuOpen}
+          onClick={() => setMenuOpen((open) => !open)}
+        >
+          ⋯
+        </button>
+        {menuOpen && (
+          <div className="mobile-menu-panel">
+            <button type="button" onClick={() => { setMenuOpen(false); onEdit(); }}>Rename</button>
+            <button type="button" onClick={() => { setMenuOpen(false); openFile(); }}>{file.kind === 'link' ? 'Open Link' : 'Open File'}</button>
+            <button className="danger-menu-item" type="button" onClick={() => { setMenuOpen(false); onDelete(); }}>Delete</button>
+          </div>
+        )}
+      </div>
       <div className="file-icon">{fileIcon(file.mimeType, file.name)}</div>
       <div className="file-name">{file.name.length > 20 ? `${file.name.slice(0, 18)}...` : file.name}</div>
       <span className={`file-badge ${file.kind === 'link' ? 'file-badge-link' : 'file-badge-up'}`}>{file.kind === 'link' ? 'LINK' : 'UPLOAD'}</span>

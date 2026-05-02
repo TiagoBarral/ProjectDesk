@@ -92,7 +92,7 @@ Goal: make the app usable daily on a phone without breaking desktop.
 - [x] Stack project cards vertically on small screens.
 - [x] Reduce dashboard density on mobile.
 - [x] Increase tap targets for buttons and icons.
-- [ ] Move task/project actions into an overflow menu or swipe interaction.
+- [x] Move task/project actions into an overflow menu or swipe interaction.
 - [x] Add a sticky bottom `+ Add Task` button.
 - [x] Collapse filters into a dropdown or modal.
 - [x] Simplify the project view on mobile so tasks stay the focus.

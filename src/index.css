@@ -63,7 +63,7 @@ button{appearance:none;}
 .new-project-icon::after{width:3px;height:18px;}
 .new-project-card:hover .new-project-icon{background:#4f7df3;color:#fff;box-shadow:0 8px 22px rgba(79,125,243,.28);}
 .new-project-label{font-size:16px;}
-.mobile-delete-project,.mobile-task-meta,.mobile-add-task-fab{display:none;}
+.mobile-delete-project,.mobile-task-meta,.mobile-add-task-fab,.mobile-action-menu,.file-mobile-actions,.project-mobile-actions{display:none;}
 .detail{display:flex;flex-direction:column;height:100vh;height:100dvh;animation:fadein .15s ease;}
 .topbar{background:rgba(255,255,255,.9);border-bottom:1px solid var(--border);padding:13px 24px;display:flex;align-items:center;gap:12px;backdrop-filter:blur(12px);position:sticky;top:0;z-index:10;}
 .back-btn{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:7px 13px;font-size:13px;cursor:pointer;color:var(--text2);display:flex;align-items:center;gap:5px;font-weight:500;transition:all .15s;min-height:36px;}
@@ -124,6 +124,13 @@ button{appearance:none;}
 .icon-btn{background:none;border:none;cursor:pointer;color:var(--text3);font-size:13px;padding:4px 7px;border-radius:6px;transition:all .15s;min-width:34px;min-height:34px;}
 .icon-btn:hover{background:var(--surface2);color:var(--text2);}
 .expand-btn{background:none;border:none;cursor:pointer;color:var(--text3);font-size:11px;padding:2px 6px;min-width:34px;min-height:34px;}
+.mobile-action-menu,.file-mobile-actions,.project-mobile-actions{position:relative;}
+.mobile-menu-trigger{width:34px;height:34px;border:none;border-radius:999px;background:transparent;color:var(--text3);font-size:20px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+.mobile-menu-trigger:hover{background:var(--surface2);color:var(--text);}
+.mobile-menu-panel{position:absolute;right:0;top:calc(100% + 6px);z-index:40;min-width:150px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:5px;box-shadow:0 12px 30px rgba(15,23,42,.16);display:flex;flex-direction:column;gap:2px;}
+.mobile-menu-panel button{border:none;background:transparent;color:var(--text);font:inherit;font-size:13px;font-weight:600;text-align:left;padding:9px 10px;border-radius:9px;cursor:pointer;}
+.mobile-menu-panel button:hover{background:var(--surface2);}
+.mobile-menu-panel .danger-menu-item{color:var(--red);}
 .subtasks{border-top:1px solid var(--border);padding:10px 16px 12px 48px;background:var(--surface2);}
 .task-description{font-size:13px;line-height:1.45;color:var(--text2);white-space:pre-wrap;margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid var(--border);}
 .subtask-row{display:flex;align-items:center;gap:9px;padding:5px 0;}
@@ -340,8 +347,9 @@ button{appearance:none;}
   .topbar h2{order:1;flex:1 1 calc(100% - 92px);font-size:17px;}
   .breadcrumbs{display:none;}
   .topbar .badge{order:2;}
-  .topbar-edit{order:2;margin-left:0;}
+  .topbar-edit{display:none;}
   .topbar > .danger-btn{display:none;}
+  .project-mobile-actions{display:block;order:2;margin-left:0;}
   .tabs{order:3;margin-left:0;width:100%;display:grid;grid-template-columns:repeat(3,1fr);}
   .tab{padding:6px 8px;min-height:31px;font-size:12px;}
   .content{padding:18px 14px calc(104px + env(safe-area-inset-bottom));}
@@ -354,13 +362,16 @@ button{appearance:none;}
   .task-row{display:grid;grid-template-columns:22px minmax(0,1fr) auto;gap:4px 9px;align-items:center;padding:9px 11px;}
   .task-check{grid-column:1;grid-row:1 / span 3;}
   .pdot{display:none;}
-  .task-text{grid-column:2 / 4;flex-basis:auto;font-size:13.5px;line-height:1.25;}
+  .task-text{grid-column:2;flex-basis:auto;font-size:13.5px;line-height:1.25;}
   .mobile-task-meta{display:block;grid-column:2;font-size:11px;font-weight:600;color:var(--text2);}
   .task-row > .imp-badge{display:none;}
-  .sub-count{grid-column:3;justify-self:end;}
-  .task-actions{grid-column:2;grid-row:3;opacity:.72;margin-left:0;}
-  .expand-btn{grid-column:3;grid-row:3;justify-self:end;}
-  .file-edit,.file-del{opacity:1;}
+  .sub-count{grid-column:2;justify-self:start;font-size:10px;padding:1px 7px;}
+  .task-actions,.expand-btn{display:none;}
+  .mobile-action-menu{display:block;grid-column:3;grid-row:1 / span 2;justify-self:end;align-self:center;}
+  .mobile-menu-trigger{background:#f8fafc;border:1px solid var(--border);}
+  .mobile-menu-panel{top:calc(100% + 4px);}
+  .file-edit,.file-del{display:none;}
+  .file-mobile-actions{display:block;position:absolute;right:7px;top:7px;z-index:3;}
   .subtasks{padding:10px 14px 14px 38px;}
   .file-grid{grid-template-columns:repeat(2,minmax(0,1fr));}
   .drop-zone{padding:26px 16px;}
