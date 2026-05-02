@@ -2,11 +2,13 @@ import { useState } from 'react';
 import ImportanceBadge from './ImportanceBadge.jsx';
 import { priorityClass, priorityFromImportance } from './helpers.js';
 
-export default function TaskDetailModal({ project, task, onClose, onUpdateTask }) {
+export default function TaskDetailModal({ project, task, onClose, onUpdateTask, onAddSubtask }) {
   const [title, setTitle] = useState(task.title || task.text || '');
   const [description, setDescription] = useState(task.description || '');
   const [importance, setImportance] = useState(task.importance || 'medium');
   const [done, setDone] = useState(Boolean(task.done));
+  const [subtaskText, setSubtaskText] = useState('');
+  const [localSubtasks, setLocalSubtasks] = useState(task.subtasks || []);
   const priority = priorityFromImportance(importance);
 
   const submit = () => {
@@ -20,6 +22,17 @@ export default function TaskDetailModal({ project, task, onClose, onUpdateTask }
       done,
     });
     onClose();
+  };
+
+  const addSubtask = () => {
+    const text = subtaskText.trim();
+    if (!text || !onAddSubtask) return;
+    onAddSubtask(task.id, text);
+    setLocalSubtasks((subtasks) => [
+      ...subtasks,
+      { id: `pending-${Date.now()}`, text, done: false },
+    ]);
+    setSubtaskText('');
   };
 
   return (
@@ -52,8 +65,8 @@ export default function TaskDetailModal({ project, task, onClose, onUpdateTask }
       </div>
       <div className="task-detail-subtasks">
         <div className="section-label">Subtasks</div>
-        {task.subtasks.length ? (
-          task.subtasks.map((subtask) => (
+        {localSubtasks.length ? (
+          localSubtasks.map((subtask) => (
             <div key={subtask.id} className="subtask-row readonly">
               <span className={`sub-check ${subtask.done ? 'done' : ''}`} />
               <span className={`sub-text ${subtask.done ? 'done' : ''}`}>{subtask.text}</span>
@@ -62,6 +75,15 @@ export default function TaskDetailModal({ project, task, onClose, onUpdateTask }
         ) : (
           <div className="empty compact">No subtasks yet.</div>
         )}
+        <div className="task-detail-add-subtask">
+          <input
+            value={subtaskText}
+            onChange={(event) => setSubtaskText(event.target.value)}
+            onKeyDown={(event) => event.key === 'Enter' && addSubtask()}
+            placeholder="Add subtask..."
+          />
+          <button className="mbtn mbtn-sec" type="button" onClick={addSubtask}>Add</button>
+        </div>
       </div>
       <div className="modal-actions">
         <button className="mbtn mbtn-sec" type="button" onClick={onClose}>Cancel</button>

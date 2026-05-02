@@ -253,6 +253,10 @@ button{appearance:none;}
 .done-toggle input{width:16px;height:16px;accent-color:var(--accent);}
 .task-detail-subtasks{display:flex;flex-direction:column;gap:6px;}
 .subtask-row.readonly{padding:7px 0;}
+.task-detail-add-subtask{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;margin-top:4px;}
+.task-detail-add-subtask input{border:1px solid var(--border);border-radius:var(--radius-sm);padding:9px 12px;font-size:13px;outline:none;font-family:inherit;background:var(--surface2);color:var(--text);min-height:40px;}
+.task-detail-add-subtask input:focus{border-color:var(--accent);}
+.task-detail-add-subtask .mbtn{min-height:40px;padding:8px 14px;}
 .empty.compact{padding:10px;font-size:12px;}
 .ptask-row .proj-chip{justify-self:center;width:100%;text-align:center;}
 .proj-chip{display:block;min-width:0;max-width:100%;font-size:11px;font-weight:650;padding:3px 10px;border-radius:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;background:#f4f4f5;color:#3f3f46;border:1px solid #e4e4e7;}
@@ -383,6 +387,8 @@ button{appearance:none;}
   .modal h2{font-size:20px;}
   .field{gap:8px;}
   .field input,.field select,.field textarea{min-height:48px;font-size:16px;padding:12px 14px;}
+  .task-detail-add-subtask{grid-template-columns:1fr;}
+  .task-detail-add-subtask input{min-height:48px;font-size:16px;padding:12px 14px;}
   .modal-actions{flex-direction:column-reverse;align-items:stretch;}
   .modal-actions .mbtn{width:100%;}
   .mobile-delete-project{display:block;width:100%;}

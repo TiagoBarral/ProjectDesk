@@ -100,7 +100,13 @@ function TaskCard({
   };
 
   const openTaskDetail = () => openModal(({ onClose }) => (
-    <TaskDetailModal project={project} task={task} onClose={onClose} onUpdateTask={(taskId, updates) => onUpdateTask(taskId, updates)} />
+    <TaskDetailModal
+      project={project}
+      task={task}
+      onClose={onClose}
+      onUpdateTask={(taskId, updates) => onUpdateTask(taskId, updates)}
+      onAddSubtask={(taskId, text) => onAddSubtask(taskId, text)}
+    />
   ));
 
   const openEditTask = () => openModal(({ onClose }) => (

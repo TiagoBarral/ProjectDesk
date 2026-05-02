@@ -7,6 +7,7 @@ This project follows the spirit of [Keep a Changelog](https://keepachangelog.com
 ## [Unreleased]
 
 ### Added
+- Added subtask creation directly inside the Task Details modal.
 - Added safer confirmation modals for deleting tasks, subtasks, and files.
 - Added project pinning so important projects stay at the top.
 - Added a home-page Data modal for JSON export and import backups.
