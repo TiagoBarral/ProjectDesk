@@ -9,7 +9,7 @@
 - [x] Create a local `.env` with `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`.
 - [x] Restart the Vite dev server after adding `.env`.
 - [x] Run `supabase/add-file-storage.sql` in the Supabase SQL editor.
-- [ ] Run `supabase/add-project-pinning.sql` in the Supabase SQL editor.
+- [x] Run `supabase/add-project-pinning.sql` in the Supabase SQL editor.
 - [x] Verify the `project-files` Supabase Storage bucket exists and is public for the current no-auth phase.
 - [x] Verify desktop edits sync to Android.
 - [x] Verify Android edits sync back to desktop.
@@ -23,22 +23,13 @@
 - [ ] Later, after login/auth exists, make the `project-files` bucket private and switch uploads to signed URLs.
 - [ ] Later, add physical Storage object cleanup after file metadata soft-delete is stable.
 
-## Enable Supabase Sync Steps
-- [ ] Open the Supabase dashboard and create/select a project.
-- [ ] Go to the SQL editor in Supabase.
-- [x] Paste and run the current schema/migrations needed by the app.
-- [ ] In Supabase, go to Project Settings > API.
-- [x] Copy the Project URL.
-- [x] Copy the anon public API key.
-- [x] In `D:\PERSONAL\ProjectDesk`, create a `.env` file based on `.env.example`.
-- [x] Add `VITE_SUPABASE_URL=your-project-url` to `.env`.
-- [x] Add `VITE_SUPABASE_ANON_KEY=your-anon-key` to `.env`.
-- [ ] Stop the running Vite server if it is active.
-- [ ] Restart with `npm run dev -- --host 0.0.0.0`.
-- [x] Open the app on desktop and make one small edit.
-- [x] Open the Android URL on the phone and confirm the edit appears.
-- [x] Make one edit on Android and confirm it appears on desktop after refresh.
-- [ ] Keep `.env` out of git.
+## Supabase Setup Notes
+Supabase sync is already enabled for the current no-auth phase.
+
+- Keep `.env` out of git.
+- When schema changes are added, run the matching SQL file in the Supabase SQL editor.
+- Restart Vite after changing `.env`.
+- For Android local testing, use `npm run dev -- --host 0.0.0.0`.
 
 ## App Functionality
 - [x] Add create/delete project flows.

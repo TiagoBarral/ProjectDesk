@@ -9,23 +9,30 @@ Current release: `v0.6.0` functional alpha / early private beta.
 ## Features
 
 - Project dashboard with progress cards
+- Project pinning so important projects stay first
 - Priority dashboard across all projects
 - Filters by importance, project, and status
+- Mobile dashboard filter sheet for smaller screens
 - Project detail pages with Tasks, Notes, and Files tabs
 - Create, edit, and delete projects
 - Editable project names and statuses
+- Safer confirmation modals for destructive deletes
 - Task titles plus optional descriptions
 - Task detail modal with project, priority, status, description, and subtasks
 - Editable tasks and subtasks
 - Task priorities and importance levels
 - Project notes
 - Persistent file uploads and link tracking per project
+- JSON export/import backups
 - Completion stats
 - Responsive Android-friendly UI
 - Browser routes for project pages and tabs
 - Refresh-safe navigation
+- 404/not-found page for invalid routes
+- Desktop breadcrumbs in project detail pages
 - Browser back/forward support
 - Installable PWA support
+- Controlled PWA update prompt for new deployments
 - localStorage persistence by default
 - Optional Supabase sync with localStorage fallback
 - Sync status indicator with last synced, syncing, offline, and error states
@@ -132,6 +139,9 @@ ProjectDesk uses a storage adapter pattern:
 - Saves write to localStorage first, then sync scoped row changes to Supabase.
 - Remote refresh runs on startup, focus, visibility changes, a timed interval, and after successful saves.
 - Projects, tasks, subtasks, and file metadata use `updated_at` and `deleted_at` so newer edits and soft deletes can converge across devices.
+- Pending local edits are retried after remote refresh when Supabase becomes reachable again.
+- Stale local rows are skipped during Supabase upsert so older devices do not overwrite newer remote data.
+- Remote refresh applies Supabase data to the UI before retrying pending local edits, so one failed retry does not block cross-device updates.
 - Uploaded file bytes are stored in Supabase Storage bucket `project-files`; localStorage stores metadata only.
 
 The storage layer lives in:
@@ -205,6 +215,17 @@ The app includes:
 
 This allows the app to be installed from supported browsers. For Android install testing, serve the app from localhost or HTTPS.
 
+The service worker uses a controlled update flow. New deployments can show an `Update available` prompt with a Reload action instead of forcing surprise reloads or keeping stale app code around for too long.
+
+## Data Backups
+
+The home page includes a small Data modal for:
+
+- Exporting the current ProjectDesk state as JSON
+- Importing a JSON backup
+
+Imports replace the current dataset and mark missing records as soft-deleted so old Supabase rows do not silently reappear.
+
 ## Development Notes
 
 Useful project documents:
@@ -222,4 +243,4 @@ Avoid committing:
 
 ## Current Status
 
-The app is functional as an early private beta. It supports local daily use, optional Supabase cross-device sync, browser routes, PWA basics, and project/task management flows. Before treating it as a stable daily-driver release, verify Android PWA install/offline behavior and continue real-world desktop-to-mobile sync testing.
+The app is functional as an early private beta. It supports local daily use, optional Supabase cross-device sync, browser routes, PWA basics, file uploads, JSON backups, and project/task management flows. Before treating it as a stable daily-driver release, verify Android PWA install/offline behavior and continue real-world desktop-to-mobile sync testing.
