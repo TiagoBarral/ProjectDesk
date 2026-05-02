@@ -37,6 +37,10 @@ This project follows the spirit of [Keep a Changelog](https://keepachangelog.com
 - Normalized duplicate project slugs so active project routes remain unique.
 - Prevented uploaded files from appearing before their Supabase metadata row is saved.
 - Prevented remote refresh from treating file metadata load errors as an empty file list.
+- Made offline edits cache to localStorage immediately before Supabase sync is attempted.
+- Added pending-sync retry after remote refresh so failed or offline local edits can sync when Supabase is reachable again.
+- Hardened sync normalization against duplicate local records and missing timestamps before Supabase upserts.
+- Kept stale local rows from overwriting newer Supabase rows while preserving explicit pending local changes.
 
 ## [0.6.0] - 2026-04-29
 

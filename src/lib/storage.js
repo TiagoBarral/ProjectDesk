@@ -2,6 +2,7 @@ import { isSupabaseConfigured, supabase } from './supabase.js';
 import { logger } from './logger.js';
 
 const STORAGE_KEY = 'project-ecosystem:data:v2';
+const BASELINE_TIMESTAMP = '1970-01-01T00:00:00.000Z';
 
 export const defaultData = {
   projects: [
@@ -98,7 +99,7 @@ export function normalizeData(data) {
   const usedProjectSlugs = new Set();
 
   return {
-    projects: safe.projects.map((project, projectIndex) => {
+    projects: dedupeLatestItems(safe.projects.map((project, projectIndex) => {
       const projectId = ensureUuid(project.id, `project:${projectIndex}:${project.name || ''}`);
       const baseSlug = slugify(project.slug) || slugify(project.name) || projectId;
       let projectSlug = baseSlug;
@@ -120,7 +121,7 @@ export function normalizeData(data) {
         updated_at: project.updated_at || null,
         deleted_at: project.deleted_at || null,
         sync_pending: Boolean(project.sync_pending),
-        files: (Array.isArray(project.files) ? project.files : []).map((file, fileIndex) => {
+        files: dedupeLatestItems((Array.isArray(project.files) ? project.files : []).map((file, fileIndex) => {
           const fileName = file.name || file.path || file.public_url || 'Untitled file';
           const fileId = ensureUuid(file.id, `file:${projectId}:${fileIndex}:${fileName}`);
           return {
@@ -138,8 +139,8 @@ export function normalizeData(data) {
             deleted_at: file.deleted_at || null,
             sync_pending: Boolean(file.sync_pending),
           };
-        }),
-        tasks: (project.tasks || []).map((task, taskIndex) => {
+        })),
+        tasks: dedupeLatestItems((project.tasks || []).map((task, taskIndex) => {
           const taskTitle = task.title || task.text || '';
           const taskId = ensureUuid(task.id, `task:${projectId}:${taskIndex}:${taskTitle}`);
           return {
@@ -154,24 +155,48 @@ export function normalizeData(data) {
             updated_at: task.updated_at || null,
             deleted_at: task.deleted_at || null,
             sync_pending: Boolean(task.sync_pending),
-            subtasks: (task.subtasks || []).map((subtask, subtaskIndex) => ({
+            subtasks: dedupeLatestItems((task.subtasks || []).map((subtask, subtaskIndex) => ({
               id: ensureUuid(subtask.id, `subtask:${taskId}:${subtaskIndex}:${subtask.text || ''}`),
               text: subtask.text || '',
               done: Boolean(subtask.done),
               updated_at: subtask.updated_at || null,
               deleted_at: subtask.deleted_at || null,
               sync_pending: Boolean(subtask.sync_pending),
-            })),
+            }))),
           };
-        }),
+        })),
       };
-    }),
+    })),
     filters: {
       importance: safe.filters?.importance || 'all',
       project: safe.filters?.project && safe.filters.project !== 'all' ? ensureUuid(safe.filters.project, safe.filters.project) : 'all',
       status: safe.filters?.status || 'active',
     },
   };
+}
+
+export function getPendingSyncScope(state) {
+  const normalized = normalizeData(state);
+  const scope = { projects: [], tasks: [], subtasks: [], files: [] };
+
+  normalized.projects.forEach((project) => {
+    if (project.sync_pending) scope.projects.push(project.id);
+    project.files.forEach((file) => {
+      if (file.sync_pending) scope.files.push(file.id);
+    });
+    project.tasks.forEach((task) => {
+      if (task.sync_pending) scope.tasks.push(task.id);
+      task.subtasks.forEach((subtask) => {
+        if (subtask.sync_pending) scope.subtasks.push(subtask.id);
+      });
+    });
+  });
+
+  return scope;
+}
+
+export function hasPendingSync(scope) {
+  return Boolean(scope) && ['projects', 'tasks', 'subtasks', 'files'].some((key) => scope[key]?.length);
 }
 
 let syncQueue = Promise.resolve();
@@ -404,6 +429,18 @@ function timestampValue(value) {
   return Number.isNaN(timestamp) ? 0 : timestamp;
 }
 
+function dedupeLatestItems(items) {
+  const byId = new Map();
+  items.forEach((item) => {
+    if (!item?.id) return;
+    const previous = byId.get(item.id);
+    if (!previous || eventTimestamp(item) >= eventTimestamp(previous)) {
+      byId.set(item.id, item);
+    }
+  });
+  return Array.from(byId.values());
+}
+
 function groupBy(items, key) {
   return items.reduce((groups, item) => {
     groups[item[key]] = groups[item[key]] || [];
@@ -562,6 +599,11 @@ async function upsertFreshRows(table, rows) {
     const remoteRow = remoteRows.get(row.id);
     return !remoteRow || eventTimestamp(row) > eventTimestamp(remoteRow);
   });
+  const skippedCount = rows.length - freshRows.length;
+
+  if (skippedCount) {
+    logger.info('sync: skipped stale rows', { table, skippedCount });
+  }
 
   await upsertRows(table, freshRows);
   return freshRows.length;
@@ -577,7 +619,12 @@ async function fetchRemoteFreshness(table, ids) {
 
 async function upsertRows(table, rows) {
   if (!rows.length) return;
-  const { error } = await supabase.from(table).upsert(rows, { onConflict: 'id' });
+  const safeRows = rows.map((row) => ({
+    ...row,
+    updated_at: row.updated_at || row.deleted_at || BASELINE_TIMESTAMP,
+    deleted_at: row.deleted_at || null,
+  }));
+  const { error } = await supabase.from(table).upsert(safeRows, { onConflict: 'id' });
   if (error) {
     throw error;
   }

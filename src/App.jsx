@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { cacheState, defaultData, loadRemoteState, loadState, mergeStateByUpdatedAt, normalizeData, saveState } from './lib/storage.js';
+import { cacheState, defaultData, getPendingSyncScope, hasPendingSync, loadRemoteState, loadState, mergeStateByUpdatedAt, normalizeData, saveState } from './lib/storage.js';
 import { logger } from './lib/logger.js';
 import { usePwaUpdate } from './lib/pwaUpdate.js';
 import Modal from './components/Modal.jsx';
@@ -231,12 +231,23 @@ export default function App() {
       }
 
       const mergedState = mergeStateByUpdatedAt(dataRef.current, normalizeData(remoteState));
-      dataRef.current = mergedState;
-      setData(mergedState);
-      cacheState(mergedState);
+      let nextState = mergedState;
+      const pendingScope = getPendingSyncScope(mergedState);
+
+      if (hasPendingSync(pendingScope)) {
+        await saveState(mergedState, { changed: pendingScope });
+        const confirmedRemoteState = await loadRemoteState({ throwOnError: true });
+        if (confirmedRemoteState) {
+          nextState = mergeStateByUpdatedAt(mergedState, normalizeData(confirmedRemoteState));
+        }
+      }
+
+      dataRef.current = nextState;
+      setData(nextState);
+      cacheState(nextState);
       setLastSyncedAt(new Date());
       setSyncState('synced');
-      return mergedState;
+      return nextState;
     } catch (error) {
       logger.error('Remote refresh error', error);
       setSyncState('error');
@@ -412,6 +423,8 @@ export default function App() {
     setData(normalized);
 
     if (!hasHydrated || isInitializing) return;
+
+    cacheState(normalized);
 
     if (!window.navigator.onLine) {
       setSyncState('offline');

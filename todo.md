@@ -15,6 +15,7 @@
 - [x] Verify Android edits sync back to desktop.
 - [x] Add a visible sync/offline error state if Supabase save fails.
 - [x] Replace broad full-state saves with scoped row-level Supabase upserts where practical.
+- [x] Retry pending local edits after remote refresh when Supabase becomes reachable again.
 
 ## File Uploads
 - [x] Test uploading a small file from desktop and opening it after refresh.
@@ -123,19 +124,19 @@ Goal: make the app feel like an installable mobile app.
 ### Phase 4 - Sync UX
 Goal: make sync status trustworthy and visible.
 
-- [ ] Add sync indicator states: Saving, Saved, Offline, Error.
-- [ ] Show offline mode clearly.
-- [ ] Show sync failure without blocking local app usage.
-- [ ] Prevent silent sync failures.
+- [x] Add sync indicator states: Saving, Saved, Offline, Error.
+- [x] Show offline mode clearly.
+- [x] Show sync failure without blocking local app usage.
+- [x] Prevent silent sync failures.
 
 ### Phase 5 - Data Stability
 Goal: prevent future data bugs.
 
-- [ ] Normalize state on load.
-- [ ] Handle local vs Supabase conflicts.
-- [ ] Prevent duplicate inserts.
-- [ ] Ensure consistent IDs across devices.
-- [ ] Add safe fallback if Supabase fails.
+- [x] Normalize state on load.
+- [x] Handle local vs Supabase conflicts.
+- [x] Prevent duplicate inserts.
+- [x] Ensure consistent IDs across devices.
+- [x] Add safe fallback if Supabase fails.
 
 ### Phase 6 - UX Polish
 Goal: make the app enjoyable for daily use.
