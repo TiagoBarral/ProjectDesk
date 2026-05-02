@@ -35,6 +35,7 @@ This project follows the spirit of [Keep a Changelog](https://keepachangelog.com
 
 ### Fixed
 - Fixed mobile task overflow menus being clipped inside task cards.
+- Fixed mobile task detail expansion collapsing after sync refresh by syncing the task `expanded` field.
 - Prevented unresolved project routes from silently falling back to the home page.
 - Normalized duplicate project slugs so active project routes remain unique.
 - Prevented uploaded files from appearing before their Supabase metadata row is saved.

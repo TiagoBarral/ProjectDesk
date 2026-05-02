@@ -552,6 +552,7 @@ function flattenData(data, changed) {
           text: taskTitle,
           description: task.description || '',
           done: task.done,
+          expanded: Boolean(task.expanded),
           importance: task.importance,
           priority: task.priority,
           updated_at: task.updated_at || null,
