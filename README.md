@@ -58,6 +58,8 @@ ProjectDesk/
   supabase/
     schema.sql
     add-task-title-description.sql
+    add-file-storage.sql
+    add-project-pinning.sql
   CHANGELOG.md
   README.md
   todo.md
@@ -166,6 +168,12 @@ supabase/add-file-storage.sql
 ```
 
 This creates/updates the public `project-files` Storage bucket for the current no-auth phase.
+
+If your database was created before project pinning was added, also run:
+
+```text
+supabase/add-project-pinning.sql
+```
 
 4. Copy your Supabase Project URL.
 5. Copy your anon public API key.

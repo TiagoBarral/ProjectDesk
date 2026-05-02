@@ -20,7 +20,10 @@ export default function ProjectCard({ project, onOpen }) {
       <div className="card-top">
         <div>
           <div className="card-name">{project.name}</div>
-          <span className={`badge ${badgeClass}`}>{badgeLabel}</span>
+          <div className="card-badges">
+            <span className={`badge ${badgeClass}`}>{badgeLabel}</span>
+            {project.pinned && <span className="pin-badge" title="Pinned project">Pinned</span>}
+          </div>
         </div>
         <div className="ring-wrap">
           <svg width="76" height="76" viewBox="0 0 76 76" aria-hidden="true">

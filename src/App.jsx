@@ -3,6 +3,7 @@ import { cacheState, defaultData, loadRemoteState, loadState, mergeStateByUpdate
 import { logger } from './lib/logger.js';
 import { usePwaUpdate } from './lib/pwaUpdate.js';
 import Modal from './components/Modal.jsx';
+import ConfirmModal from './components/ConfirmModal.jsx';
 import PriorityDashboard from './components/PriorityDashboard.jsx';
 import ProjectCard from './components/ProjectCard.jsx';
 import ProjectDetail from './components/ProjectDetail.jsx';
@@ -98,6 +99,97 @@ function visibleProjects(projects = []) {
           subtasks: (task.subtasks || []).filter((subtask) => !subtask.deleted_at),
         })),
     }));
+}
+
+function sortProjects(projects = []) {
+  return [...projects].sort((left, right) => {
+    if (Boolean(left.pinned) !== Boolean(right.pinned)) return left.pinned ? -1 : 1;
+    return 0;
+  });
+}
+
+function markImportedStateForSync(importedState, currentState, timestamp) {
+  const imported = normalizeData(importedState);
+  const current = normalizeData(currentState);
+  const importedProjectsById = new Map(imported.projects.map((project) => [project.id, project]));
+
+  const nextProjects = imported.projects.map((project) => {
+    const currentProject = current.projects.find((item) => item.id === project.id);
+    return {
+      ...project,
+      updated_at: timestamp,
+      deleted_at: project.deleted_at || null,
+      sync_pending: true,
+      files: withMissingItemTombstones(project.files || [], currentProject?.files || [], timestamp),
+      tasks: withMissingTaskTombstones(project.tasks || [], currentProject?.tasks || [], timestamp),
+    };
+  });
+
+  current.projects.forEach((project) => {
+    if (importedProjectsById.has(project.id)) return;
+    nextProjects.push({
+      ...project,
+      updated_at: timestamp,
+      deleted_at: timestamp,
+      sync_pending: true,
+    });
+  });
+
+  return normalizeData({ ...imported, projects: nextProjects });
+}
+
+function withMissingTaskTombstones(importedTasks, currentTasks, timestamp) {
+  const importedById = new Map(importedTasks.map((task) => [task.id, task]));
+  const nextTasks = importedTasks.map((task) => {
+    const currentTask = currentTasks.find((item) => item.id === task.id);
+    return {
+      ...task,
+      updated_at: timestamp,
+      deleted_at: task.deleted_at || null,
+      sync_pending: true,
+      subtasks: withMissingItemTombstones(task.subtasks || [], currentTask?.subtasks || [], timestamp),
+    };
+  });
+
+  currentTasks.forEach((task) => {
+    if (importedById.has(task.id)) return;
+    nextTasks.push({
+      ...task,
+      updated_at: timestamp,
+      deleted_at: timestamp,
+      sync_pending: true,
+      subtasks: (task.subtasks || []).map((subtask) => ({
+        ...subtask,
+        updated_at: timestamp,
+        deleted_at: timestamp,
+        sync_pending: true,
+      })),
+    });
+  });
+
+  return nextTasks;
+}
+
+function withMissingItemTombstones(importedItems, currentItems, timestamp) {
+  const importedById = new Map(importedItems.map((item) => [item.id, item]));
+  const nextItems = importedItems.map((item) => ({
+    ...item,
+    updated_at: timestamp,
+    deleted_at: item.deleted_at || null,
+    sync_pending: true,
+  }));
+
+  currentItems.forEach((item) => {
+    if (importedById.has(item.id)) return;
+    nextItems.push({
+      ...item,
+      updated_at: timestamp,
+      deleted_at: timestamp,
+      sync_pending: true,
+    });
+  });
+
+  return nextItems;
 }
 
 export default function App() {
@@ -244,7 +336,7 @@ export default function App() {
     };
   }, [refreshFromRemote]);
 
-  const projects = useMemo(() => visibleProjects(data.projects), [data.projects]);
+  const projects = useMemo(() => sortProjects(visibleProjects(data.projects)), [data.projects]);
   const activeProject = useMemo(
     () => resolveProjectByRouteParam(projects, routeProjectParam),
     [projects, routeProjectParam],
@@ -396,6 +488,12 @@ export default function App() {
     updateData((current) => ({ ...current, filters: { ...current.filters, ...filters } }), { projects: [], tasks: [], subtasks: [] });
   };
 
+  const openConfirm = useCallback(({ title, message, confirmLabel, onConfirm }) => {
+    openModal(({ onClose }) => (
+      <ConfirmModal title={title} message={message} confirmLabel={confirmLabel} onClose={onClose} onConfirm={onConfirm} />
+    ));
+  }, [openModal]);
+
   const toggleTask = (projectId, taskId) => {
     const timestamp = nowIso();
     updateProject(projectId, (project) => ({
@@ -442,6 +540,7 @@ export default function App() {
       name: project.name,
       color: project.color || DEFAULT_PROJECT_COLOR,
       status: project.status || 'active',
+      pinned: false,
       notes: '',
       files: [],
       tasks: [],
@@ -488,6 +587,40 @@ export default function App() {
 
     persist(nextState, { projects: [projectId] });
     navigate({ view: 'home', routeProjectParam: null, activeTab: 'tasks' });
+  };
+
+  const confirmDeleteTask = (projectId, taskId) => {
+    const project = projects.find((item) => item.id === projectId);
+    const task = project?.tasks.find((item) => item.id === taskId);
+    openConfirm({
+      title: 'Delete Task',
+      message: `Delete "${task?.title || task?.text || 'this task'}"? This removes it from the task list and syncs the deletion across devices.`,
+      confirmLabel: 'Delete Task',
+      onConfirm: () => deleteTask(projectId, taskId),
+    });
+  };
+
+  const confirmDeleteSubtask = (projectId, taskId, subtaskId) => {
+    const project = projects.find((item) => item.id === projectId);
+    const task = project?.tasks.find((item) => item.id === taskId);
+    const subtask = task?.subtasks.find((item) => item.id === subtaskId);
+    openConfirm({
+      title: 'Delete Subtask',
+      message: `Delete "${subtask?.text || 'this subtask'}"?`,
+      confirmLabel: 'Delete Subtask',
+      onConfirm: () => deleteSubtask(projectId, taskId, subtaskId),
+    });
+  };
+
+  const confirmDeleteFile = (projectId, fileId) => {
+    const project = projects.find((item) => item.id === projectId);
+    const file = project?.files.find((item) => item.id === fileId);
+    openConfirm({
+      title: 'Delete File',
+      message: `Remove "${file?.name || 'this file'}" from ProjectDesk? Uploaded file metadata is hidden now; physical Storage cleanup can be added later.`,
+      confirmLabel: 'Delete File',
+      onConfirm: () => deleteFile(projectId, fileId),
+    });
   };
 
   const updateTask = (projectId, taskId, updates) => {
@@ -617,6 +750,26 @@ export default function App() {
     setSyncState('synced');
   };
 
+  const exportBackup = () => {
+    const backup = normalizeData(dataRef.current);
+    const stamp = new Date().toISOString().slice(0, 10);
+    const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `projectdesk-backup-${stamp}.json`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+  };
+
+  const importBackup = (backupState) => {
+    const timestamp = nowIso();
+    const replacement = markImportedStateForSync(backupState, dataRef.current, timestamp);
+    persist(replacement);
+  };
+
   return (
     <>
       {view === 'notFound' ? (
@@ -639,6 +792,15 @@ export default function App() {
                 <h1>Projects</h1>
                 <p>Manage tasks, notes, and files per project</p>
               </div>
+              <button
+                className="data-btn"
+                type="button"
+                onClick={() => openModal(({ onClose }) => (
+                  <DataToolsModal onClose={onClose} onExport={exportBackup} onImport={importBackup} />
+                ))}
+              >
+                Data
+              </button>
             </div>
             <div className="card-grid">
               <button
@@ -668,16 +830,16 @@ export default function App() {
           onDeleteProject={() => deleteProject(detailProject.id)}
           onToggleTask={(taskId) => toggleTask(detailProject.id, taskId)}
           onToggleTaskExpanded={(taskId, expanded) => toggleTaskExpanded(detailProject.id, taskId, expanded)}
-          onDeleteTask={(taskId) => deleteTask(detailProject.id, taskId)}
+          onDeleteTask={(taskId) => confirmDeleteTask(detailProject.id, taskId)}
           onAddTask={(task) => addTask(detailProject.id, task)}
           onUpdateTask={(taskId, updates) => updateTask(detailProject.id, taskId, updates)}
           onToggleSubtask={(taskId, subtaskId) => toggleSubtask(detailProject.id, taskId, subtaskId)}
           onAddSubtask={(taskId, text) => addSubtask(detailProject.id, taskId, text)}
-          onDeleteSubtask={(taskId, subtaskId) => deleteSubtask(detailProject.id, taskId, subtaskId)}
+          onDeleteSubtask={(taskId, subtaskId) => confirmDeleteSubtask(detailProject.id, taskId, subtaskId)}
           onUpdateSubtask={(taskId, subtaskId, updates) => updateSubtask(detailProject.id, taskId, subtaskId, updates)}
           onUpdateNotes={(notes) => updateNotes(detailProject.id, notes)}
           onAddFiles={(files) => addFiles(detailProject.id, files)}
-          onDeleteFile={(fileId) => deleteFile(detailProject.id, fileId)}
+          onDeleteFile={(fileId) => confirmDeleteFile(detailProject.id, fileId)}
           onUpdateFile={(fileId, updates) => updateFile(detailProject.id, fileId, updates)}
           onShowSaved={showSaved}
           openModal={openModal}
@@ -721,6 +883,68 @@ function UpdateToast({ onReload }) {
       <span>Update available</span>
       <button type="button" onClick={onReload}>Reload</button>
     </div>
+  );
+}
+
+function DataToolsModal({ onClose, onExport, onImport }) {
+  const [selectedBackup, setSelectedBackup] = useState(null);
+  const [error, setError] = useState('');
+  const [isReading, setIsReading] = useState(false);
+
+  const readBackup = async (file) => {
+    if (!file) return;
+    setIsReading(true);
+    setError('');
+    setSelectedBackup(null);
+
+    try {
+      const parsed = JSON.parse(await file.text());
+      const normalized = normalizeData(parsed);
+      if (!Array.isArray(normalized.projects)) throw new Error('Backup file is missing projects.');
+      setSelectedBackup({
+        name: file.name,
+        state: normalized,
+        projectCount: normalized.projects.filter((project) => !project.deleted_at).length,
+        taskCount: countTasks(normalized.projects),
+      });
+    } catch (importError) {
+      setError(importError.message || 'Could not read this backup file.');
+    } finally {
+      setIsReading(false);
+    }
+  };
+
+  const submitImport = () => {
+    if (!selectedBackup) return;
+    onImport(selectedBackup.state);
+    onClose();
+  };
+
+  return (
+    <>
+      <h2>Data</h2>
+      <p className="modal-note">Back up or restore your ProjectDesk data. Imports replace the current dataset and then sync the replacement.</p>
+      <div className="data-actions">
+        <button className="mbtn mbtn-sec" type="button" onClick={onExport}>Export JSON</button>
+        <label className="import-btn">
+          Import JSON
+          <input type="file" accept="application/json,.json" onChange={(event) => readBackup(event.target.files?.[0])} />
+        </label>
+      </div>
+      {isReading && <p className="modal-note">Reading backup...</p>}
+      {error && <div className="warn-note danger-note">{error}</div>}
+      {selectedBackup && (
+        <div className="import-preview">
+          <strong>{selectedBackup.name}</strong>
+          <span>{selectedBackup.projectCount} projects · {selectedBackup.taskCount} tasks</span>
+          <p>This will replace the current app data. Export a fresh backup first if you are unsure.</p>
+        </div>
+      )}
+      <div className="modal-actions">
+        <button className="mbtn mbtn-sec" type="button" onClick={onClose}>Close</button>
+        <button className="mbtn mbtn-danger" type="button" disabled={!selectedBackup} onClick={submitImport}>Replace with Backup</button>
+      </div>
+    </>
   );
 }
 

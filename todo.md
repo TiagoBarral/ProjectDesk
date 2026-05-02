@@ -9,6 +9,7 @@
 - [x] Create a local `.env` with `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`.
 - [x] Restart the Vite dev server after adding `.env`.
 - [x] Run `supabase/add-file-storage.sql` in the Supabase SQL editor.
+- [ ] Run `supabase/add-project-pinning.sql` in the Supabase SQL editor.
 - [x] Verify the `project-files` Supabase Storage bucket exists and is public for the current no-auth phase.
 - [x] Verify desktop edits sync to Android.
 - [x] Verify Android edits sync back to desktop.
@@ -40,13 +41,13 @@
 
 ## App Functionality
 - [x] Add create/delete project flows.
-- [ ] Add safer delete confirmations for tasks, subtasks, and files.
-- [ ] Add project ordering or pinning.
+- [x] Add safer delete confirmations for tasks, subtasks, and files.
+- [x] Add project ordering or pinning.
 - [ ] Add due dates or scheduled dates for tasks.
 - [ ] Add search across projects, tasks, notes, and files.
 - [ ] Add tags or labels for tasks.
 - [ ] Add a reset/demo-data action for testing.
-- [ ] Add import/export JSON backup.
+- [x] Add import/export JSON backup.
 
 ## AI Features
 - [ ] AI task improvement (ProjectDesk)

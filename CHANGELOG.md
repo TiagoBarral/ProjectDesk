@@ -7,6 +7,10 @@ This project follows the spirit of [Keep a Changelog](https://keepachangelog.com
 ## [Unreleased]
 
 ### Added
+- Added safer confirmation modals for deleting tasks, subtasks, and files.
+- Added project pinning so important projects stay at the top.
+- Added a home-page Data modal for JSON export and import backups.
+- Added a Supabase migration for the project `pinned` column.
 - Added persistent Supabase Storage uploads for project files.
 - Added Supabase file storage migration and setup notes for the `project-files` bucket.
 - Added a real not-found page for invalid project routes.

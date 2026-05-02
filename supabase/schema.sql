@@ -8,6 +8,7 @@ create table if not exists public.projects (
   slug text,
   color text not null default '#5e5ce6',
   status text not null default 'active',
+  pinned boolean not null default false,
   notes text not null default '',
   sort_order integer not null default 0,
   created_at timestamptz not null default now(),

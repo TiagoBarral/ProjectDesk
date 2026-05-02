@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { DEFAULT_PROJECT_COLOR, stats } from './helpers.js';
+import ConfirmModal from './ConfirmModal.jsx';
 import FilesTab from './tabs/FilesTab.jsx';
 import NotesTab from './tabs/NotesTab.jsx';
 import TasksTab from './tabs/TasksTab.jsx';
@@ -29,7 +30,7 @@ export default function ProjectDetail(props) {
           className="ghost-btn topbar-edit"
           type="button"
           onClick={() => openModal(({ onClose }) => (
-            <EditProjectModal project={project} onClose={onClose} onSubmit={onUpdateProject} onDelete={onDeleteProject} />
+            <EditProjectModal project={project} onClose={onClose} onSubmit={onUpdateProject} onDelete={onDeleteProject} openModal={openModal} />
           ))}
         >
           Edit
@@ -78,20 +79,27 @@ function DeleteProjectModal({ project, onClose, onConfirm }) {
   );
 }
 
-function EditProjectModal({ project, onClose, onSubmit, onDelete }) {
+function EditProjectModal({ project, onClose, onSubmit, onDelete, openModal }) {
   const [name, setName] = useState(project.name);
   const [status, setStatus] = useState(project.status);
+  const [pinned, setPinned] = useState(Boolean(project.pinned));
 
   const submit = () => {
     if (!name.trim()) return;
-    onSubmit({ name: name.trim(), status });
+    onSubmit({ name: name.trim(), status, pinned });
     onClose();
   };
 
   const deleteProject = () => {
-    if (!window.confirm(`Delete ${project.name}? This removes it from your project list and syncs the deletion across devices.`)) return;
-    onDelete();
-    onClose();
+    openModal(({ onClose: closeConfirm }) => (
+      <ConfirmModal
+        title="Delete Project"
+        message={`Delete ${project.name}? This removes it from your project list and syncs the deletion across devices.`}
+        confirmLabel="Delete Project"
+        onClose={closeConfirm}
+        onConfirm={onDelete}
+      />
+    ));
   };
 
   return (
@@ -110,6 +118,10 @@ function EditProjectModal({ project, onClose, onSubmit, onDelete }) {
           <option value="done">Done</option>
         </select>
       </div>
+      <label className="check-field">
+        <input type="checkbox" checked={pinned} onChange={(event) => setPinned(event.target.checked)} />
+        <span>Pin project to the top</span>
+      </label>
       <button className="mobile-delete-project mbtn mbtn-danger" type="button" onClick={deleteProject}>Delete Project</button>
       <div className="modal-actions">
         <button className="mbtn mbtn-sec" type="button" onClick={onClose}>Cancel</button>
