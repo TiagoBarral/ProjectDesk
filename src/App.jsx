@@ -232,13 +232,21 @@ export default function App() {
 
       const mergedState = mergeStateByUpdatedAt(dataRef.current, normalizeData(remoteState));
       let nextState = mergedState;
+      dataRef.current = nextState;
+      setData(nextState);
+      cacheState(nextState);
+
       const pendingScope = getPendingSyncScope(mergedState);
 
       if (hasPendingSync(pendingScope)) {
-        await saveState(mergedState, { changed: pendingScope });
-        const confirmedRemoteState = await loadRemoteState({ throwOnError: true });
-        if (confirmedRemoteState) {
-          nextState = mergeStateByUpdatedAt(mergedState, normalizeData(confirmedRemoteState));
+        try {
+          await saveState(mergedState, { changed: pendingScope });
+          const confirmedRemoteState = await loadRemoteState({ throwOnError: true });
+          if (confirmedRemoteState) {
+            nextState = mergeStateByUpdatedAt(mergedState, normalizeData(confirmedRemoteState));
+          }
+        } catch (pendingError) {
+          logger.error('Pending sync retry error', pendingError);
         }
       }
 

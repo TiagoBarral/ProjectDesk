@@ -42,6 +42,7 @@ This project follows the spirit of [Keep a Changelog](https://keepachangelog.com
 - Hardened sync normalization against duplicate local records and missing timestamps before Supabase upserts.
 - Kept stale local rows from overwriting newer Supabase rows while preserving explicit pending local changes.
 - Prevented a failed background refresh after a successful save from incorrectly leaving the sync indicator stuck on `Sync failed`.
+- Made remote refresh apply Supabase data to the UI before retrying pending local edits, so one bad pending row cannot block cross-device updates.
 
 ## [0.6.0] - 2026-04-29
 
