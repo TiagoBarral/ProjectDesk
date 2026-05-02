@@ -41,6 +41,7 @@ This project follows the spirit of [Keep a Changelog](https://keepachangelog.com
 - Added pending-sync retry after remote refresh so failed or offline local edits can sync when Supabase is reachable again.
 - Hardened sync normalization against duplicate local records and missing timestamps before Supabase upserts.
 - Kept stale local rows from overwriting newer Supabase rows while preserving explicit pending local changes.
+- Prevented a failed background refresh after a successful save from incorrectly leaving the sync indicator stuck on `Sync failed`.
 
 ## [0.6.0] - 2026-04-29
 

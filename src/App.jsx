@@ -212,21 +212,21 @@ export default function App() {
     dataRef.current = data;
   }, [data]);
 
-  const refreshFromRemote = useCallback(async () => {
+  const refreshFromRemote = useCallback(async ({ silent = false } = {}) => {
     if (isRefreshingRef.current || isInitializing) return null;
     if (!window.navigator.onLine) {
-      setSyncState('offline');
+      if (!silent) setSyncState('offline');
       return false;
     }
 
     isRefreshingRef.current = true;
-    setSyncState('syncing');
+    if (!silent) setSyncState('syncing');
 
     try {
       const remoteState = await loadRemoteState({ throwOnError: true });
       if (!remoteState) {
         setLastSyncedAt(new Date());
-        setSyncState('synced');
+        if (!silent) setSyncState('synced');
         return null;
       }
 
@@ -246,11 +246,11 @@ export default function App() {
       setData(nextState);
       cacheState(nextState);
       setLastSyncedAt(new Date());
-      setSyncState('synced');
+      if (!silent) setSyncState('synced');
       return nextState;
     } catch (error) {
       logger.error('Remote refresh error', error);
-      setSyncState('error');
+      if (!silent) setSyncState('error');
       return false;
     } finally {
       isRefreshingRef.current = false;
@@ -435,10 +435,8 @@ export default function App() {
     saveState(normalized, { changed })
       .then(() => {
         setLastSyncedAt(new Date());
-        return refreshFromRemote();
-      })
-      .then((refreshResult) => {
-        if (refreshResult !== false) setSyncState('synced');
+        setSyncState('synced');
+        return refreshFromRemote({ silent: true });
       })
       .catch((error) => {
         logger.error('State persistence error', error);
