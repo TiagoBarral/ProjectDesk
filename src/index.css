@@ -358,7 +358,7 @@ button{appearance:none;}
   .mobile-add-task-fab::before,.mobile-add-task-fab::after{content:'';position:absolute;left:50%;top:50%;background:currentColor;border-radius:2px;transform:translate(-50%,-50%);}
   .mobile-add-task-fab::before{width:20px;height:3px;}
   .mobile-add-task-fab::after{width:3px;height:20px;}
-  .task-card{border-radius:14px;margin-bottom:6px;}
+  .task-card{border-radius:14px;margin-bottom:6px;overflow:visible;}
   .task-row{display:grid;grid-template-columns:22px minmax(0,1fr) auto;gap:4px 9px;align-items:center;padding:9px 11px;}
   .task-check{grid-column:1;grid-row:1 / span 3;}
   .pdot{display:none;}
@@ -369,7 +369,8 @@ button{appearance:none;}
   .task-actions,.expand-btn{display:none;}
   .mobile-action-menu{display:block;grid-column:3;grid-row:1 / span 2;justify-self:end;align-self:center;}
   .mobile-menu-trigger{background:#f8fafc;border:1px solid var(--border);}
-  .mobile-menu-panel{top:calc(100% + 4px);}
+  .mobile-action-menu .mobile-menu-panel{top:50%;transform:translateY(-50%);right:40px;}
+  .project-mobile-actions .mobile-menu-panel,.file-mobile-actions .mobile-menu-panel{top:calc(100% + 4px);transform:none;}
   .file-edit,.file-del{display:none;}
   .file-mobile-actions{display:block;position:absolute;right:7px;top:7px;z-index:3;}
   .subtasks{padding:10px 14px 14px 38px;}
