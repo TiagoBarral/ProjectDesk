@@ -74,6 +74,24 @@ Build:
 npm run build
 ```
 
+## External AI Tooling
+
+AIAssist is an external AI development framework shared across projects. It lives outside this repository:
+
+```text
+D:\PERSONAL\AIAssist\ai-dev-framework
+```
+
+Do not copy or recreate AIAssist tooling inside ProjectDesk.
+
+Use AIAssist workflows selectively:
+
+- `/development` for large features or unclear product work that benefits from a definition, brainstorming, planning, tasks, and execution flow.
+- `/bugfix` for confusing bugs that need explicit root-cause investigation.
+- `/test-case-design` when defining structured test cases from requirements or acceptance criteria.
+
+For small fixes, UI tweaks, docs updates, and straightforward implementation, follow this `AGENTS.md` workflow directly.
+
 ## Git Hygiene
 
 Before connecting to GitHub or making the first commit:
