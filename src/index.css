@@ -373,7 +373,7 @@ button{appearance:none;}
   .task-actions,.expand-btn{display:none;}
   .mobile-action-menu{display:block;grid-column:3;grid-row:1 / span 2;justify-self:end;align-self:center;}
   .mobile-menu-trigger{background:#f8fafc;border:1px solid var(--border);}
-  .mobile-action-menu .mobile-menu-panel{top:50%;transform:translateY(-50%);right:40px;}
+  .mobile-action-menu .mobile-menu-panel{top:calc(100% + 4px);right:0;transform:none;max-width:calc(100vw - 32px);}
   .project-mobile-actions .mobile-menu-panel,.file-mobile-actions .mobile-menu-panel{top:calc(100% + 4px);transform:none;}
   .file-edit,.file-del{display:none;}
   .file-mobile-actions{display:block;position:absolute;right:7px;top:7px;z-index:3;}

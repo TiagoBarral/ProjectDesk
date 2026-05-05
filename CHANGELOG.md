@@ -35,6 +35,7 @@ This project follows the spirit of [Keep a Changelog](https://keepachangelog.com
 - Reduced Priority Dashboard task title weight for calmer scanning.
 
 ### Fixed
+- Fixed mobile task overflow menus opening sideways where they could be hard to see on narrow screens.
 - Fixed mobile task overflow menus being clipped inside task cards.
 - Fixed mobile task detail expansion collapsing after sync refresh by syncing the task `expanded` field.
 - Prevented unresolved project routes from silently falling back to the home page.
