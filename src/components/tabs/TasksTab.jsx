@@ -145,12 +145,15 @@ function TaskCard({
             ⋯
           </button>
           {menuOpen && (
-            <div className="mobile-menu-panel">
-              <button type="button" onClick={() => { setMenuOpen(false); onToggleTaskExpanded(task.id, true); }}>Add Subtask</button>
-              <button type="button" onClick={() => { setMenuOpen(false); openEditTask(); }}>Edit Task</button>
-              <button type="button" onClick={() => { setMenuOpen(false); onToggleTaskExpanded(task.id); }}>{task.expanded ? 'Hide Details' : 'Show Details'}</button>
-              <button className="danger-menu-item" type="button" onClick={() => { setMenuOpen(false); onDeleteTask(task.id); }}>Delete Task</button>
-            </div>
+            <>
+              <button className="mobile-menu-backdrop" type="button" aria-label="Close task actions" onClick={() => setMenuOpen(false)} />
+              <div className="mobile-menu-panel">
+                <button type="button" onClick={() => { setMenuOpen(false); onToggleTaskExpanded(task.id, true); }}>Add Subtask</button>
+                <button type="button" onClick={() => { setMenuOpen(false); openEditTask(); }}>Edit Task</button>
+                <button type="button" onClick={() => { setMenuOpen(false); onToggleTaskExpanded(task.id); }}>{task.expanded ? 'Hide Details' : 'Show Details'}</button>
+                <button className="danger-menu-item" type="button" onClick={() => { setMenuOpen(false); onDeleteTask(task.id); }}>Delete Task</button>
+              </div>
+            </>
           )}
         </div>
         <button className="expand-btn" type="button" aria-label="Expand task" onClick={(event) => { event.stopPropagation(); onToggleTaskExpanded(task.id); }}>
