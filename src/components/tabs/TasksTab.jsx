@@ -221,7 +221,7 @@ function TaskCard({
               onKeyDown={(event) => event.key === 'Enter' && submitSubtask()}
               placeholder="Add subtask..."
             />
-            <button className="icon-btn" type="button" onClick={submitSubtask}>↵</button>
+            <button className="icon-btn" type="button" aria-label="Add subtask" onClick={submitSubtask}>↵</button>
           </div>
         </div>
       )}

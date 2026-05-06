@@ -112,6 +112,34 @@ Preview the production build:
 npm run preview
 ```
 
+## Quality Checks
+
+Run the focused unit tests:
+
+```bash
+npm run test:run
+```
+
+Run lint:
+
+```bash
+npm run lint
+```
+
+Run the smoke check for production build plus direct project route helpers:
+
+```bash
+npm run smoke
+```
+
+Format the new quality tooling and test files:
+
+```bash
+npm run format
+```
+
+The formatter is intentionally scoped to the new tooling/test files to avoid a noisy whole-app formatting pass.
+
 ## Routing
 
 The app uses browser routes without adding a routing library.

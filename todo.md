@@ -152,7 +152,7 @@ Goal: support multi-user or production use only if the app grows.
 - [ ] Add migration path from anonymous `workspace_id = 'default'` data to authenticated data.
 
 ## Quality
-- [ ] Add basic component tests for storage transforms and route helpers.
-- [ ] Add a lint/format setup.
-- [ ] Add a smoke test for build and direct project routes.
-- [ ] Review accessibility for icon-only edit/delete buttons.
+- [x] Add basic component tests for storage transforms and route helpers.
+- [x] Add a lint/format setup.
+- [x] Add a smoke test for build and direct project routes.
+- [x] Review accessibility for icon-only edit/delete buttons.

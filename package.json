@@ -6,7 +6,13 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "vitest",
+    "test:run": "vitest --run",
+    "lint": "eslint .",
+    "format": "prettier --write package.json eslint.config.js src/lib/routes.js src/lib/routes.test.js src/lib/storage.test.js",
+    "format:check": "prettier --check package.json eslint.config.js src/lib/routes.js src/lib/routes.test.js src/lib/storage.test.js",
+    "smoke": "npm run build && vitest --run src/lib/routes.test.js"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.105.0",
@@ -14,7 +20,12 @@
     "react-dom": "^18.2.0"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "@vitejs/plugin-react": "^4.2.1",
-    "vite": "^5.2.0"
+    "eslint": "^10.3.0",
+    "globals": "^17.6.0",
+    "prettier": "^3.8.3",
+    "vite": "^5.2.0",
+    "vitest": "^4.1.5"
   }
 }

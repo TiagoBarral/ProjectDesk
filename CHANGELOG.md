@@ -7,6 +7,8 @@ This project follows the spirit of [Keep a Changelog](https://keepachangelog.com
 ## [Unreleased]
 
 ### Added
+- Added Vitest coverage for route helpers and storage transforms, plus lint, format, and smoke-test scripts.
+- Added missing accessible labels for icon-only file and subtask action buttons.
 - Added subtask creation directly inside the Task Details modal.
 - Added safer confirmation modals for deleting tasks, subtasks, and files.
 - Added project pinning so important projects stay at the top.

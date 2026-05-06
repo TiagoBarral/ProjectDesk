@@ -124,8 +124,8 @@ function FileCard({ file, onDelete, onEdit }) {
       onClick={openFile}
       onKeyDown={(event) => (event.key === 'Enter' || event.key === ' ') && openFile()}
     >
-      <button className="file-edit" type="button" onClick={(event) => { event.stopPropagation(); onEdit(); }}>✎</button>
-      <button className="file-del" type="button" onClick={(event) => { event.stopPropagation(); onDelete(); }}>✕</button>
+      <button className="file-edit" type="button" aria-label="Rename file" onClick={(event) => { event.stopPropagation(); onEdit(); }}>✎</button>
+      <button className="file-del" type="button" aria-label="Delete file" onClick={(event) => { event.stopPropagation(); onDelete(); }}>✕</button>
       <div className="file-mobile-actions" ref={menuRef} onClick={(event) => event.stopPropagation()}>
         <button
           className="mobile-menu-trigger"

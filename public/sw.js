@@ -58,7 +58,7 @@ async function networkFirst(request) {
       await cache.put(request, response.clone());
     }
     return response;
-  } catch (error) {
+  } catch {
     const cached = await caches.match(request);
     return cached || caches.match('/');
   }

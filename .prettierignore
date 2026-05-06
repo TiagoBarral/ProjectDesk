@@ -1,0 +1,6 @@
+dist
+node_modules
+coverage
+vite-server.log
+vite-server.err.log
+_private

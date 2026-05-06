@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { cacheState, defaultData, getPendingSyncScope, hasPendingSync, loadRemoteState, loadState, mergeStateByUpdatedAt, normalizeData, saveState } from './lib/storage.js';
 import { logger } from './lib/logger.js';
 import { usePwaUpdate } from './lib/pwaUpdate.js';
+import { PROJECT_TABS, parseRoutePath, projectPath, projectRouteKey, resolveProjectByRouteParam, routePath, slugify, uniqueProjectSlug } from './lib/routes.js';
 import Modal from './components/Modal.jsx';
 import ConfirmModal from './components/ConfirmModal.jsx';
 import PriorityDashboard from './components/PriorityDashboard.jsx';
@@ -12,75 +13,10 @@ import { DEFAULT_PROJECT_COLOR } from './components/helpers.js';
 
 const uid = () => (window.crypto?.randomUUID ? window.crypto.randomUUID() : Math.random().toString(36).slice(2, 9));
 const nowIso = () => new Date().toISOString();
-const tabs = ['tasks', 'notes', 'files'];
 const priorityFromImportance = (importance) => (importance === 'high' ? 'high' : importance === 'low' ? 'low' : 'mid');
 
-function slugify(value) {
-  return String(value || '')
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '');
-}
-
-function uniqueProjectSlug(name, projects, projectId) {
-  const baseSlug = slugify(name) || projectId;
-  const usedSlugs = new Set(
-    projects
-      .filter((project) => project.id !== projectId)
-      .map((project) => project.slug || slugify(project.name)),
-  );
-
-  let slug = baseSlug;
-  let suffix = 2;
-  while (usedSlugs.has(slug)) {
-    slug = `${baseSlug}-${suffix}`;
-    suffix += 1;
-  }
-  return slug;
-}
-
-function projectRouteKey(project, projects) {
-  return project.slug || slugify(project.name) || project.id;
-}
-
-function resolveProjectByRouteParam(projects, routeParam) {
-  if (!routeParam) return null;
-
-  return projects.find((project) => project.slug === routeParam) ||
-    projects.find((project) => slugify(project.name) === routeParam) ||
-    projects.find((project) => project.id === routeParam) ||
-    null;
-}
-
-function projectPath(project, projects, tab = 'tasks') {
-  return `/projects/${encodeURIComponent(projectRouteKey(project, projects))}/${tab}`;
-}
-
 function routeFromLocation() {
-  const parts = window.location.pathname.split('/').filter(Boolean).map(decodeURIComponent);
-  if (!parts.length) {
-    return { view: 'home', routeProjectParam: null, activeTab: 'tasks' };
-  }
-  if (parts[0] === 'projects' && parts[1]) {
-    if (parts[2] && !tabs.includes(parts[2])) {
-      return { view: 'notFound', routeProjectParam: parts[1], activeTab: 'tasks' };
-    }
-    return { view: 'detail', routeProjectParam: parts[1], activeTab: parts[2] || 'tasks' };
-  }
-  if (parts[0] === 'projects') {
-    return { view: 'home', routeProjectParam: null, activeTab: 'tasks' };
-  }
-  return { view: 'notFound', routeProjectParam: null, activeTab: 'tasks' };
-}
-
-function routePath({ view, routeProjectParam, activeTab, project, projects }) {
-  if (view === 'detail' && project && projects) return projectPath(project, projects, activeTab || 'tasks');
-  if (view === 'detail' && routeProjectParam) return `/projects/${encodeURIComponent(routeProjectParam)}/${activeTab || 'tasks'}`;
-  if (view === 'notFound') return window.location.pathname || '/not-found';
-  return '/';
+  return parseRoutePath(window.location.pathname);
 }
 
 function countTasks(projects = []) {
@@ -293,17 +229,18 @@ export default function App() {
       } catch (error) {
         logger.error('Hydration error', error);
       } finally {
-        if (!alive) return;
-        logger.info('hydrate: complete', {
-          usedRemote,
-          projectCount: hydratedState?.projects?.length || 0,
-          taskCount: countTasks(hydratedState?.projects),
-        });
-        if (hydratedState) {
-          dataRef.current = hydratedState;
+        if (alive) {
+          logger.info('hydrate: complete', {
+            usedRemote,
+            projectCount: hydratedState?.projects?.length || 0,
+            taskCount: countTasks(hydratedState?.projects),
+          });
+          if (hydratedState) {
+            dataRef.current = hydratedState;
+          }
+          setHasHydrated(true);
+          setIsInitializing(false);
         }
-        setHasHydrated(true);
-        setIsInitializing(false);
       }
     }
 
@@ -413,14 +350,14 @@ export default function App() {
   useEffect(() => {
     if (pendingRoute) return;
     if (hasHydrated && view === 'detail' && activeProject) {
-      const canonicalPath = projectPath(activeProject, projects, activeTab);
+      const canonicalPath = projectPath(activeProject, activeTab);
       if (window.location.pathname !== canonicalPath) {
         logger.debug('route: canonicalizing project route', {
           from: window.location.pathname,
           to: canonicalPath,
         });
         window.history.replaceState(null, '', canonicalPath);
-        setRouteProjectParam(projectRouteKey(activeProject, projects));
+        setRouteProjectParam(projectRouteKey(activeProject));
       }
     }
   }, [hasHydrated, view, activeProject, projects, activeTab, pendingRoute]);
@@ -478,12 +415,12 @@ export default function App() {
   }, []);
 
   const navigate = useCallback((nextRoute) => {
-    const path = routePath({ ...nextRoute, projects });
+    const path = routePath({ ...nextRoute, currentPath: window.location.pathname });
     if (window.location.pathname !== path) {
       window.history.pushState(null, '', path);
     }
     setView(nextRoute.view);
-    setRouteProjectParam(nextRoute.project ? projectRouteKey(nextRoute.project, projects) : nextRoute.routeProjectParam);
+    setRouteProjectParam(nextRoute.project ? projectRouteKey(nextRoute.project) : nextRoute.routeProjectParam);
     setActiveTab(nextRoute.activeTab || 'tasks');
     setPendingRoute(null);
     setModal(null);
@@ -499,7 +436,7 @@ export default function App() {
   };
 
   const switchTab = (tab) => {
-    if (!detailProject || !tabs.includes(tab)) return;
+    if (!detailProject || !PROJECT_TABS.includes(tab)) return;
     navigate({ view: 'detail', project: detailProject, activeTab: tab });
   };
 
@@ -585,8 +522,8 @@ export default function App() {
 
     if (view === 'detail' && nextProject && detailProject?.id === projectId) {
       const resolvedNextProject = resolveProjectByRouteParam(nextProjects, nextProject.slug || slugify(nextProject.name) || nextProject.id) || nextProject;
-      const nextRouteKey = projectRouteKey(resolvedNextProject, nextProjects);
-      const nextPath = projectPath(resolvedNextProject, nextProjects, activeTab);
+      const nextRouteKey = projectRouteKey(resolvedNextProject);
+      const nextPath = projectPath(resolvedNextProject, activeTab);
       setPendingRoute({ path: nextPath, routeProjectParam: nextRouteKey, activeTab });
     }
 
