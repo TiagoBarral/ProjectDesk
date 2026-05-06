@@ -125,11 +125,14 @@ function FileCard({ file, onDelete, onEdit }) {
           ⋯
         </button>
         {menuOpen && (
-          <div className="mobile-menu-panel">
-            <button type="button" onClick={() => { setMenuOpen(false); onEdit(); }}>Rename</button>
-            <button type="button" onClick={() => { setMenuOpen(false); openFile(); }}>{file.kind === 'link' ? 'Open Link' : 'Open File'}</button>
-            <button className="danger-menu-item" type="button" onClick={() => { setMenuOpen(false); onDelete(); }}>Delete</button>
-          </div>
+          <>
+            <button className="mobile-menu-backdrop" type="button" aria-label="Close file actions" onClick={() => setMenuOpen(false)} />
+            <div className="mobile-menu-panel">
+              <button type="button" onClick={() => { setMenuOpen(false); onEdit(); }}>Rename</button>
+              <button type="button" onClick={() => { setMenuOpen(false); openFile(); }}>{file.kind === 'link' ? 'Open Link' : 'Open File'}</button>
+              <button className="danger-menu-item" type="button" onClick={() => { setMenuOpen(false); onDelete(); }}>Delete</button>
+            </div>
+          </>
         )}
       </div>
       <div className="file-icon">{fileIcon(file.mimeType, file.name)}</div>

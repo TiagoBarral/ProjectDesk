@@ -58,10 +58,13 @@ export default function ProjectDetail(props) {
             ⋯
           </button>
           {projectMenuOpen && (
-            <div className="mobile-menu-panel">
-              <button type="button" onClick={() => { setProjectMenuOpen(false); openEditProject(); }}>Edit Project</button>
-              <button className="danger-menu-item" type="button" onClick={() => { setProjectMenuOpen(false); openDeleteProject(); }}>Delete Project</button>
-            </div>
+            <>
+              <button className="mobile-menu-backdrop" type="button" aria-label="Close project actions" onClick={() => setProjectMenuOpen(false)} />
+              <div className="mobile-menu-panel">
+                <button type="button" onClick={() => { setProjectMenuOpen(false); openEditProject(); }}>Edit Project</button>
+                <button className="danger-menu-item" type="button" onClick={() => { setProjectMenuOpen(false); openDeleteProject(); }}>Delete Project</button>
+              </div>
+            </>
           )}
         </div>
         <div className="tabs">

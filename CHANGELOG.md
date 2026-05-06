@@ -35,6 +35,7 @@ This project follows the spirit of [Keep a Changelog](https://keepachangelog.com
 - Reduced Priority Dashboard task title weight for calmer scanning.
 
 ### Fixed
+- Fixed the mobile project and file overflow menus so they use the same viewport-safe bottom sheet as task actions.
 - Bumped the service worker cache version so installed PWAs detect the latest deployed mobile task menu fix.
 - Fixed mobile task overflow menus by opening task actions in a fixed mobile popover that stays fully visible on narrow screens.
 - Fixed mobile task overflow menus being clipped inside task cards.
