@@ -9,6 +9,7 @@ This project follows the spirit of [Keep a Changelog](https://keepachangelog.com
 ### Added
 - Added profile and personal workspace bootstrap for signed-in users.
 - Added a workspace migration SQL path for pre-workspace ProjectDesk data.
+- Added a private bucket hardening SQL file for the `project-files` Supabase Storage bucket.
 - Added Supabase email/password authentication with a sign-in/sign-up screen.
 - Added authenticated row ownership and RLS setup SQL for projects, tasks, subtasks, and file metadata.
 - Added user-prefixed Supabase Storage uploads with signed URL opening for uploaded files.
@@ -30,6 +31,7 @@ This project follows the spirit of [Keep a Changelog](https://keepachangelog.com
 
 ### Changed
 - Scoped signed-in local cache and Supabase row payloads to the active workspace when workspace support is installed.
+- Changed uploaded file deletion to remove the physical Supabase Storage object after the metadata soft-delete sync succeeds.
 - Moved the Projects section above the Priority Dashboard on desktop and mobile.
 - Replaced separate home-page Data and Sign out controls with a compact account menu.
 - Moved New Project from the project card grid into the Projects header.

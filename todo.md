@@ -20,8 +20,8 @@
 ## File Uploads
 - [x] Test uploading a small file from desktop and opening it after refresh.
 - [x] Test uploading a small file from Android and opening it on desktop.
-- [ ] After checking legacy uploaded objects, make the `project-files` bucket private. New uploads already use user-prefixed paths and signed URLs.
-- [ ] Later, add physical Storage object cleanup after file metadata soft-delete is stable.
+- [x] After checking legacy uploaded objects, add the private `project-files` bucket migration. New uploads already use user-prefixed paths and signed URLs.
+- [x] Add physical Storage object cleanup after file metadata soft-delete is stable.
 
 ## Supabase Setup Notes
 Supabase sync is enabled for the current authenticated phase.
@@ -29,6 +29,7 @@ Supabase sync is enabled for the current authenticated phase.
 - Keep `.env` out of git.
 - When schema changes are added, run the matching SQL file in the Supabase SQL editor.
 - Current auth/workspace setup SQL: `supabase/add-auth-rls.sql`, then `supabase/add-workspaces.sql`.
+- Private file bucket hardening SQL: `supabase/make-file-storage-private.sql`.
 - Restart Vite after changing `.env`.
 - For Android local testing, use `npm run dev -- --host 0.0.0.0`.
 

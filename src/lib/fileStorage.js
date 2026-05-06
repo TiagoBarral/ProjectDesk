@@ -97,3 +97,20 @@ export async function getProjectFileUrl(file) {
   }
   return data?.signedUrl || '';
 }
+
+export async function deleteProjectFileObject(file) {
+  if (file.kind === 'link' || !file.storage_path) {
+    return { skipped: true };
+  }
+
+  if (!isSupabaseConfigured || !supabase) {
+    return { skipped: true };
+  }
+
+  const { error } = await supabase.storage
+    .from(file.storage_bucket || FILE_BUCKET)
+    .remove([file.storage_path]);
+
+  if (error) throw error;
+  return { skipped: false };
+}

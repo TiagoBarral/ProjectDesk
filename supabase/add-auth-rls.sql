@@ -234,11 +234,5 @@ create policy "ProjectDesk users can delete own storage files"
     and (storage.foldername(name))[1] = (select auth.uid()::text)
   );
 
--- Keep the existing bucket public until any pre-auth objects using legacy
--- paths like projects/<project-id>/... have been migrated or accepted as old
--- public links. After verifying current file uploads still open, make the
--- bucket private:
---
--- update storage.buckets
--- set public = false
--- where id = 'project-files';
+-- After verifying authenticated file uploads still open, run:
+-- supabase/make-file-storage-private.sql

@@ -73,6 +73,7 @@ ProjectDesk/
     add-project-pinning.sql
     add-auth-rls.sql
     add-workspaces.sql
+    make-file-storage-private.sql
   CHANGELOG.md
   README.md
   todo.md
@@ -192,12 +193,14 @@ ProjectDesk uses a storage adapter pattern:
 - Remote refresh applies Supabase data to the UI before retrying pending local edits, so one failed retry does not block cross-device updates.
 - Uploaded file bytes are stored in Supabase Storage bucket `project-files`; localStorage stores metadata only.
 - New uploaded files are stored under user-specific Storage paths and opened with signed URLs.
+- When an uploaded file is deleted, ProjectDesk soft-deletes its metadata first, then removes the physical Storage object after the metadata save succeeds.
 
 The storage layer lives in:
 
 ```text
 src/lib/storage.js
 src/lib/supabase.js
+src/lib/fileStorage.js
 src/lib/auth.js
 ```
 
@@ -214,7 +217,11 @@ ProjectDesk now uses Supabase Email/Password Auth for cross-device sync.
 
 The app keeps local offline cache behavior. On first sign-in, if no user-scoped cache exists on that browser, ProjectDesk can read the old pre-auth local cache and save it under the signed-in user.
 
-The `project-files` bucket is prepared for user-prefixed private Storage paths. Keep the bucket public until any legacy pre-auth uploaded objects have been checked or migrated; then run the final commented `update storage.buckets set public = false` statement in `supabase/add-auth-rls.sql`.
+The `project-files` bucket is prepared for private Storage access. After authenticated Storage policies are installed and upload/open behavior has been verified, run:
+
+```text
+supabase/make-file-storage-private.sql
+```
 
 ## Supabase Sync
 
@@ -242,7 +249,7 @@ If your database was created before persistent file uploads were added, also run
 supabase/add-file-storage.sql
 ```
 
-This creates/updates the public `project-files` Storage bucket for the current no-auth phase.
+This creates/updates the `project-files` Storage bucket for the older no-auth phase. For the authenticated phase, run `supabase/add-auth-rls.sql`, verify file upload/open behavior, then run `supabase/make-file-storage-private.sql`.
 
 If your database was created before project pinning was added, also run:
 

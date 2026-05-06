@@ -12,6 +12,7 @@ import SyncStatus from './components/SyncStatus.jsx';
 import AuthScreen, { AccountMenu } from './components/AuthScreen.jsx';
 import { DEFAULT_PROJECT_COLOR } from './components/helpers.js';
 import { getCurrentSession, subscribeToAuth } from './lib/auth.js';
+import { deleteProjectFileObject } from './lib/fileStorage.js';
 import { isSupabaseConfigured } from './lib/supabase.js';
 import { ensureUserWorkspace } from './lib/workspaces.js';
 
@@ -130,6 +131,37 @@ function withMissingItemTombstones(importedItems, currentItems, timestamp) {
   });
 
   return nextItems;
+}
+
+function deletedStorageFilesForCleanup(state, changed) {
+  const changedFileIds = new Set(changed?.files || []);
+  if (!changedFileIds.size) return [];
+
+  return state.projects.flatMap((project) => (
+    project.files || []
+  )).filter((file) => (
+    changedFileIds.has(file.id)
+    && file.deleted_at
+    && file.storage_path
+    && file.kind !== 'link'
+  ));
+}
+
+async function cleanupDeletedStorageFiles(state, changed) {
+  const files = deletedStorageFilesForCleanup(state, changed);
+  if (!files.length) return;
+
+  await Promise.all(files.map(async (file) => {
+    try {
+      await deleteProjectFileObject(file);
+    } catch (error) {
+      logger.warn('Storage object cleanup skipped', {
+        fileId: file.id,
+        storagePath: file.storage_path,
+        error: error.message || error,
+      });
+    }
+  }));
 }
 
 export default function App() {
@@ -455,7 +487,8 @@ export default function App() {
 
     setSyncState('syncing');
     saveState(normalized, { changed, userId: syncUserId, workspaceId: syncWorkspaceId })
-      .then(() => {
+      .then(async () => {
+        await cleanupDeletedStorageFiles(normalized, changed);
         setLastSyncedAt(new Date());
         setSyncState('synced');
         return refreshFromRemote({ silent: true });
