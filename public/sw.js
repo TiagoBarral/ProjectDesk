@@ -1,5 +1,5 @@
-const STATIC_CACHE = 'projectdesk-static-v6';
-const RUNTIME_CACHE = 'projectdesk-runtime-v6';
+const STATIC_CACHE = 'projectdesk-static-v7';
+const RUNTIME_CACHE = 'projectdesk-runtime-v7';
 
 const isSupportedRequest = (requestUrl) => ['http:', 'https:'].includes(requestUrl.protocol);
 

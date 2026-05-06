@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { DEFAULT_PROJECT_COLOR, stats } from './helpers.js';
 import ConfirmModal from './ConfirmModal.jsx';
 import FilesTab from './tabs/FilesTab.jsx';
@@ -8,6 +8,7 @@ import TasksTab from './tabs/TasksTab.jsx';
 export default function ProjectDetail(props) {
   const { project, activeTab, onBack, onHome, onTabChange, onUpdateProject, onDeleteProject, openModal } = props;
   const [projectMenuOpen, setProjectMenuOpen] = useState(false);
+  const projectMenuRef = useRef(null);
   const projectStats = stats(project);
   const activeFileCount = project.files.filter((file) => !file.deleted_at).length;
   const badgeClass = { active: 'badge-active', paused: 'badge-paused', planning: 'badge-planning' }[project.status] || 'badge-planning';
@@ -18,6 +19,17 @@ export default function ProjectDetail(props) {
   const openDeleteProject = () => openModal(({ onClose }) => (
     <DeleteProjectModal project={project} onClose={onClose} onConfirm={onDeleteProject} />
   ));
+
+  useEffect(() => {
+    if (!projectMenuOpen) return undefined;
+
+    const closeOnOutsideTap = (event) => {
+      if (!projectMenuRef.current?.contains(event.target)) setProjectMenuOpen(false);
+    };
+
+    document.addEventListener('pointerdown', closeOnOutsideTap, true);
+    return () => document.removeEventListener('pointerdown', closeOnOutsideTap, true);
+  }, [projectMenuOpen]);
 
   return (
     <main className="detail">
@@ -47,7 +59,7 @@ export default function ProjectDetail(props) {
         >
           Delete
         </button>
-        <div className="project-mobile-actions">
+        <div className="project-mobile-actions" ref={projectMenuRef}>
           <button
             className="mobile-menu-trigger"
             type="button"

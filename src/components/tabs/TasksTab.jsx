@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import ImportanceBadge from '../ImportanceBadge.jsx';
 import TaskDetailModal from '../TaskDetailModal.jsx';
 import { priorityClass, priorityFromImportance } from '../helpers.js';
@@ -91,6 +91,7 @@ function TaskCard({
   const [editingSubtask, setEditingSubtask] = useState(null);
   const [editingText, setEditingText] = useState('');
   const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef(null);
   const doneSubtasks = task.subtasks.filter((subtask) => subtask.done).length;
 
   const submitSubtask = () => {
@@ -113,6 +114,17 @@ function TaskCard({
     <TaskModal title="Edit Task" actionLabel="Save Task" task={task} onClose={onClose} onSubmit={(updates) => onUpdateTask(task.id, updates)} />
   ));
 
+  useEffect(() => {
+    if (!menuOpen) return undefined;
+
+    const closeOnOutsideTap = (event) => {
+      if (!menuRef.current?.contains(event.target)) setMenuOpen(false);
+    };
+
+    document.addEventListener('pointerdown', closeOnOutsideTap, true);
+    return () => document.removeEventListener('pointerdown', closeOnOutsideTap, true);
+  }, [menuOpen]);
+
   return (
     <div className="task-card clickable" onClick={openTaskDetail}>
       <div className="task-row">
@@ -134,7 +146,7 @@ function TaskCard({
           </button>
           <button className="icon-btn" type="button" aria-label="Delete task" onClick={(event) => { event.stopPropagation(); onDeleteTask(task.id); }}>✕</button>
         </div>
-        <div className="mobile-action-menu" onClick={(event) => event.stopPropagation()}>
+        <div className="mobile-action-menu" ref={menuRef} onClick={(event) => event.stopPropagation()}>
           <button
             className="mobile-menu-trigger"
             type="button"

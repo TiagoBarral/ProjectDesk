@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { fileIcon, fmtSize } from '../helpers.js';
 import { uploadProjectFile } from '../../lib/fileStorage.js';
 
@@ -90,6 +90,7 @@ export default function FilesTab({ project, onAddFiles, onDeleteFile, onUpdateFi
 
 function FileCard({ file, onDelete, onEdit }) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef(null);
   const fileUrl = file.public_url || file.path;
   const meta = file.kind === 'link' ? file.path : fmtSize(file.size);
   const openFile = () => {
@@ -103,6 +104,17 @@ function FileCard({ file, onDelete, onEdit }) {
     }
   };
 
+  useEffect(() => {
+    if (!menuOpen) return undefined;
+
+    const closeOnOutsideTap = (event) => {
+      if (!menuRef.current?.contains(event.target)) setMenuOpen(false);
+    };
+
+    document.addEventListener('pointerdown', closeOnOutsideTap, true);
+    return () => document.removeEventListener('pointerdown', closeOnOutsideTap, true);
+  }, [menuOpen]);
+
   return (
     <div
       className="file-card"
@@ -114,7 +126,7 @@ function FileCard({ file, onDelete, onEdit }) {
     >
       <button className="file-edit" type="button" onClick={(event) => { event.stopPropagation(); onEdit(); }}>✎</button>
       <button className="file-del" type="button" onClick={(event) => { event.stopPropagation(); onDelete(); }}>✕</button>
-      <div className="file-mobile-actions" onClick={(event) => event.stopPropagation()}>
+      <div className="file-mobile-actions" ref={menuRef} onClick={(event) => event.stopPropagation()}>
         <button
           className="mobile-menu-trigger"
           type="button"

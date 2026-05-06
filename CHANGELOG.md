@@ -35,6 +35,7 @@ This project follows the spirit of [Keep a Changelog](https://keepachangelog.com
 - Reduced Priority Dashboard task title weight for calmer scanning.
 
 ### Fixed
+- Added document-level outside-tap handling so mobile overflow menus close reliably when tapping away.
 - Made the mobile overflow menu outside-tap layer reliably catch taps so open menus close when tapping away.
 - Centered mobile overflow menus so every action remains visible above the bottom controls.
 - Fixed the mobile project and file overflow menus so they use the same viewport-safe bottom sheet as task actions.
