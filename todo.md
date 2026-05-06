@@ -24,10 +24,11 @@
 - [ ] Later, add physical Storage object cleanup after file metadata soft-delete is stable.
 
 ## Supabase Setup Notes
-Supabase sync is already enabled for the current no-auth phase.
+Supabase sync is enabled for the current authenticated phase.
 
 - Keep `.env` out of git.
 - When schema changes are added, run the matching SQL file in the Supabase SQL editor.
+- Current auth/workspace setup SQL: `supabase/add-auth-rls.sql`, then `supabase/add-workspaces.sql`.
 - Restart Vite after changing `.env`.
 - For Android local testing, use `npm run dev -- --host 0.0.0.0`.
 
@@ -141,15 +142,17 @@ Goal: make the app enjoyable for daily use.
 ### Phase 7 - Optional Growth
 Goal: support multi-user or production use only if the app grows.
 
-- [ ] Add Supabase Auth.
-- [ ] Add RLS for data isolation.
-- [ ] Add backup/export.
-- [ ] Add conflict handling.
+- [x] Add Supabase Auth.
+- [x] Add RLS for data isolation.
+- [x] Add backup/export.
+- [x] Add conflict handling.
+- [ ] Add workspace switching if more than one workspace is needed.
+- [ ] Add workspace invitations/member management if ProjectDesk becomes multi-user.
 
 ## Future Auth
 - [x] Add login/auth and update Supabase RLS policies for authenticated users.
-- [ ] Add user profile/workspace support if more than one person will use the app.
-- [ ] Add migration path from anonymous `workspace_id = 'default'` data to authenticated data.
+- [x] Add user profile/workspace support if more than one person will use the app.
+- [x] Add migration path from anonymous/default workspace data to authenticated workspace data.
 
 ## Quality
 - [x] Add basic component tests for storage transforms and route helpers.

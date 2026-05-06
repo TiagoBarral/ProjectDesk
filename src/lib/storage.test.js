@@ -186,4 +186,40 @@ describe("storage transforms", () => {
       "User scoped",
     );
   });
+
+  it("keeps workspace cache separate while falling back to user cache", async () => {
+    const values = new Map();
+    globalThis.window = {
+      localStorage: {
+        getItem: (key) => values.get(key) || null,
+        setItem: (key, value) => values.set(key, value),
+      },
+    };
+
+    cacheState(
+      {
+        projects: [
+          { id: projectId, name: "User fallback", files: [], tasks: [] },
+        ],
+      },
+      { userId: "user-1" },
+    );
+    cacheState(
+      {
+        projects: [
+          { id: projectId, name: "Workspace scoped", files: [], tasks: [] },
+        ],
+      },
+      { userId: "user-1", workspaceId: "workspace-1" },
+    );
+
+    expect(
+      (await loadState({ userId: "user-1", workspaceId: "workspace-1" }))
+        .projects[0].name,
+    ).toBe("Workspace scoped");
+    expect(
+      (await loadState({ userId: "user-1", workspaceId: "workspace-2" }))
+        .projects[0].name,
+    ).toBe("User fallback");
+  });
 });

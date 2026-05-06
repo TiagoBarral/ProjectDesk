@@ -4,7 +4,7 @@ import { getProjectFileUrl, uploadProjectFile } from '../../lib/fileStorage.js';
 
 const uid = () => (window.crypto?.randomUUID ? window.crypto.randomUUID() : Math.random().toString(36).slice(2, 9));
 
-export default function FilesTab({ project, userId, onAddFiles, onDeleteFile, onUpdateFile, openModal }) {
+export default function FilesTab({ project, userId, workspaceId, onAddFiles, onDeleteFile, onUpdateFile, openModal }) {
   const inputRef = useRef(null);
   const [dragOver, setDragOver] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -19,7 +19,7 @@ export default function FilesTab({ project, userId, onAddFiles, onDeleteFile, on
     try {
       const uploadedFiles = [];
       for (const file of files) {
-        uploadedFiles.push(await uploadProjectFile(project.id, file, userId));
+        uploadedFiles.push(await uploadProjectFile(project.id, file, userId, workspaceId));
       }
       onAddFiles(uploadedFiles);
     } catch (error) {

@@ -93,7 +93,7 @@ export default function AuthScreen({ authReady, isSupabaseConfigured }) {
   );
 }
 
-export function AccountMenu({ user, onOpenData, onSignOut }) {
+export function AccountMenu({ user, workspace, onOpenData, onSignOut }) {
   const [isOpen, setIsOpen] = useState(false);
   const [isSigningOut, setIsSigningOut] = useState(false);
   const menuRef = useRef(null);
@@ -133,6 +133,12 @@ export function AccountMenu({ user, onOpenData, onSignOut }) {
       </button>
       {isOpen && (
         <div className="account-panel" role="menu">
+          {workspace?.name && (
+            <div className="account-workspace">
+              <span>Workspace</span>
+              <strong>{workspace.name}</strong>
+            </div>
+          )}
           <button
             type="button"
             role="menuitem"

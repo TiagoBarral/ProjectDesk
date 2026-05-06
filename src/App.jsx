@@ -13,6 +13,7 @@ import AuthScreen, { AccountMenu } from './components/AuthScreen.jsx';
 import { DEFAULT_PROJECT_COLOR } from './components/helpers.js';
 import { getCurrentSession, subscribeToAuth } from './lib/auth.js';
 import { isSupabaseConfigured } from './lib/supabase.js';
+import { ensureUserWorkspace } from './lib/workspaces.js';
 
 const uid = () => (window.crypto?.randomUUID ? window.crypto.randomUUID() : Math.random().toString(36).slice(2, 9));
 const nowIso = () => new Date().toISOString();
@@ -140,6 +141,8 @@ export default function App() {
   const [lastSyncedAt, setLastSyncedAt] = useState(null);
   const [authReady, setAuthReady] = useState(!isSupabaseConfigured);
   const [session, setSession] = useState(null);
+  const [workspace, setWorkspace] = useState(null);
+  const [workspaceReady, setWorkspaceReady] = useState(!isSupabaseConfigured);
   const [view, setView] = useState(initialRoute.view);
   const [routeProjectParam, setRouteProjectParam] = useState(initialRoute.routeProjectParam);
   const [activeTab, setActiveTab] = useState(initialRoute.activeTab);
@@ -150,6 +153,7 @@ export default function App() {
   const { updateAvailable, reloadForUpdate } = usePwaUpdate();
   const user = session?.user || null;
   const syncUserId = user?.id || null;
+  const syncWorkspaceId = workspace?.id || null;
 
   useEffect(() => {
     dataRef.current = data;
@@ -176,6 +180,34 @@ export default function App() {
     });
   }, []);
 
+  useEffect(() => {
+    if (!authReady) return undefined;
+    if (!syncUserId) {
+      setWorkspace(null);
+      setWorkspaceReady(true);
+      return undefined;
+    }
+
+    let alive = true;
+    setWorkspaceReady(false);
+    ensureUserWorkspace(user)
+      .then((nextWorkspace) => {
+        if (!alive) return;
+        setWorkspace(nextWorkspace);
+      })
+      .catch((error) => {
+        logger.warn('Workspace bootstrap skipped', error);
+        if (alive) setWorkspace(null);
+      })
+      .finally(() => {
+        if (alive) setWorkspaceReady(true);
+      });
+
+    return () => {
+      alive = false;
+    };
+  }, [authReady, syncUserId, user]);
+
   const refreshFromRemote = useCallback(async ({ silent = false } = {}) => {
     if (isRefreshingRef.current || isInitializing) return null;
     if (!syncUserId) return null;
@@ -188,7 +220,7 @@ export default function App() {
     if (!silent) setSyncState('syncing');
 
     try {
-      const remoteState = await loadRemoteState({ throwOnError: true, userId: syncUserId });
+      const remoteState = await loadRemoteState({ throwOnError: true, userId: syncUserId, workspaceId: syncWorkspaceId });
       if (!remoteState) {
         setLastSyncedAt(new Date());
         if (!silent) setSyncState('synced');
@@ -199,14 +231,14 @@ export default function App() {
       let nextState = mergedState;
       dataRef.current = nextState;
       setData(nextState);
-      cacheState(nextState, { userId: syncUserId });
+      cacheState(nextState, { userId: syncUserId, workspaceId: syncWorkspaceId });
 
       const pendingScope = getPendingSyncScope(mergedState);
 
       if (hasPendingSync(pendingScope)) {
         try {
-          await saveState(mergedState, { changed: pendingScope, userId: syncUserId });
-          const confirmedRemoteState = await loadRemoteState({ throwOnError: true, userId: syncUserId });
+          await saveState(mergedState, { changed: pendingScope, userId: syncUserId, workspaceId: syncWorkspaceId });
+          const confirmedRemoteState = await loadRemoteState({ throwOnError: true, userId: syncUserId, workspaceId: syncWorkspaceId });
           if (confirmedRemoteState) {
             nextState = mergeStateByUpdatedAt(mergedState, normalizeData(confirmedRemoteState));
           }
@@ -217,7 +249,7 @@ export default function App() {
 
       dataRef.current = nextState;
       setData(nextState);
-      cacheState(nextState, { userId: syncUserId });
+      cacheState(nextState, { userId: syncUserId, workspaceId: syncWorkspaceId });
       setLastSyncedAt(new Date());
       if (!silent) setSyncState('synced');
       return nextState;
@@ -228,10 +260,10 @@ export default function App() {
     } finally {
       isRefreshingRef.current = false;
     }
-  }, [isInitializing, syncUserId]);
+  }, [isInitializing, syncUserId, syncWorkspaceId]);
 
   useEffect(() => {
-    if (!authReady) return undefined;
+    if (!authReady || !workspaceReady) return undefined;
 
     let alive = true;
     async function hydrateState() {
@@ -240,16 +272,16 @@ export default function App() {
       setIsInitializing(true);
       setHasHydrated(false);
       try {
-        const localState = await loadState({ userId: syncUserId });
+        const localState = await loadState({ userId: syncUserId, workspaceId: syncWorkspaceId });
         if (!alive) return;
         const normalizedLocal = normalizeData(localState);
         hydratedState = normalizedLocal;
         setData(normalizedLocal);
         if (syncUserId) {
-          cacheState(normalizedLocal, { userId: syncUserId });
+          cacheState(normalizedLocal, { userId: syncUserId, workspaceId: syncWorkspaceId });
         }
 
-        const remoteState = await loadRemoteState({ userId: syncUserId });
+        const remoteState = await loadRemoteState({ userId: syncUserId, workspaceId: syncWorkspaceId });
         if (!alive) return;
 
         const normalizedRemote = remoteState ? normalizeData(remoteState) : null;
@@ -260,10 +292,10 @@ export default function App() {
           const mergedState = mergeStateByUpdatedAt(normalizedLocal, normalizedRemote);
           hydratedState = mergedState;
           setData(mergedState);
-          cacheState(mergedState, { userId: syncUserId });
+          cacheState(mergedState, { userId: syncUserId, workspaceId: syncWorkspaceId });
         } else if (syncUserId && normalizedLocal.projects?.length) {
           setSyncState('syncing');
-          await saveState(normalizedLocal, { userId: syncUserId });
+          await saveState(normalizedLocal, { userId: syncUserId, workspaceId: syncWorkspaceId });
           setLastSyncedAt(new Date());
           setSyncState('synced');
         }
@@ -289,7 +321,7 @@ export default function App() {
     return () => {
       alive = false;
     };
-  }, [authReady, syncUserId]);
+  }, [authReady, workspaceReady, syncUserId, syncWorkspaceId]);
 
   useEffect(() => {
     if (!hasHydrated || isInitializing) return undefined;
@@ -410,7 +442,7 @@ export default function App() {
 
     if (!hasHydrated || isInitializing) return;
 
-    cacheState(normalized, { userId: syncUserId });
+    cacheState(normalized, { userId: syncUserId, workspaceId: syncWorkspaceId });
 
     if (!window.navigator.onLine) {
       setSyncState('offline');
@@ -422,7 +454,7 @@ export default function App() {
     }
 
     setSyncState('syncing');
-    saveState(normalized, { changed, userId: syncUserId })
+    saveState(normalized, { changed, userId: syncUserId, workspaceId: syncWorkspaceId })
       .then(() => {
         setLastSyncedAt(new Date());
         setSyncState('synced');
@@ -432,7 +464,7 @@ export default function App() {
         logger.error('State persistence error', error);
         setSyncState(window.navigator.onLine ? 'error' : 'offline');
       });
-  }, [hasHydrated, isInitializing, refreshFromRemote, syncUserId]);
+  }, [hasHydrated, isInitializing, refreshFromRemote, syncUserId, syncWorkspaceId]);
 
   const updateData = useCallback((updater, changed) => {
     const nextState = typeof updater === 'function' ? updater(data) : updater;
@@ -802,7 +834,7 @@ export default function App() {
               <div className="home-header-actions">
                 <button className="add-btn" type="button" onClick={openNewProject}>+ New Project</button>
                 {isSupabaseConfigured ? (
-                  <AccountMenu user={user} onOpenData={openDataTools} onSignOut={() => setSyncState('idle')} />
+                  <AccountMenu user={user} workspace={workspace} onOpenData={openDataTools} onSignOut={() => setSyncState('idle')} />
                 ) : (
                   <button className="data-btn" type="button" onClick={openDataTools}>Data</button>
                 )}
@@ -848,6 +880,7 @@ export default function App() {
           onShowSaved={showSaved}
           openModal={openModal}
           userId={syncUserId}
+          workspaceId={syncWorkspaceId}
         />
       )}
       {updateAvailable && <UpdateToast onReload={reloadForUpdate} />}

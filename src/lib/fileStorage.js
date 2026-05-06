@@ -15,7 +15,7 @@ function safeFileName(name) {
   return cleaned || fallback;
 }
 
-export async function uploadProjectFile(projectId, file, userId) {
+export async function uploadProjectFile(projectId, file, userId, workspaceId = null) {
   if (!isSupabaseConfigured || !supabase) {
     throw new Error('Supabase Storage is not configured.');
   }
@@ -39,6 +39,7 @@ export async function uploadProjectFile(projectId, file, userId) {
   const metadata = {
     id: fileId,
     user_id: userId,
+    workspace_id: workspaceId,
     project_id: projectId,
     name: file.name,
     kind: 'upload',
@@ -61,6 +62,7 @@ export async function uploadProjectFile(projectId, file, userId) {
 
   return {
     id: fileId,
+    workspace_id: workspaceId,
     name: file.name,
     kind: 'upload',
     path: '',

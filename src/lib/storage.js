@@ -112,6 +112,7 @@ export function normalizeData(data) {
 
       return {
         id: projectId,
+        workspace_id: project.workspace_id || project.workspaceId || null,
         slug: projectSlug,
         name: project.name,
         color: project.color,
@@ -126,6 +127,7 @@ export function normalizeData(data) {
           const fileId = ensureUuid(file.id, `file:${projectId}:${fileIndex}:${fileName}`);
           return {
             id: fileId,
+            workspace_id: file.workspace_id || project.workspace_id || project.workspaceId || null,
             name: fileName,
             kind: file.kind || 'link',
             path: file.path || file.public_url || '',
@@ -144,8 +146,9 @@ export function normalizeData(data) {
           const taskTitle = task.title || task.text || '';
           const taskId = ensureUuid(task.id, `task:${projectId}:${taskIndex}:${taskTitle}`);
           return {
-            id: taskId,
-            title: taskTitle,
+              id: taskId,
+              workspace_id: task.workspace_id || project.workspace_id || project.workspaceId || null,
+              title: taskTitle,
             text: taskTitle,
             description: task.description || '',
             priority: task.priority || 'mid',
@@ -157,6 +160,7 @@ export function normalizeData(data) {
             sync_pending: Boolean(task.sync_pending),
             subtasks: dedupeLatestItems((task.subtasks || []).map((subtask, subtaskIndex) => ({
               id: ensureUuid(subtask.id, `subtask:${taskId}:${subtaskIndex}:${subtask.text || ''}`),
+              workspace_id: subtask.workspace_id || task.workspace_id || project.workspace_id || project.workspaceId || null,
               text: subtask.text || '',
               done: Boolean(subtask.done),
               updated_at: subtask.updated_at || null,
@@ -205,21 +209,22 @@ export async function loadState(options = {}) {
   return loadLocalFallback(options);
 }
 
-export async function loadRemoteState({ throwOnError = false, userId = null } = {}) {
+export async function loadRemoteState({ throwOnError = false, userId = null, workspaceId = null } = {}) {
   if (!isSupabaseConfigured || !userId) return null;
 
   try {
+    const scopeQuery = (query) => (workspaceId ? query.eq('workspace_id', workspaceId) : query);
     const [projectsResult, tasksResult, subtasksResult] = await Promise.all([
-      supabase.from('projects').select('*').eq('user_id', userId),
-      supabase.from('tasks').select('*').eq('user_id', userId),
-      supabase.from('subtasks').select('*').eq('user_id', userId),
+      scopeQuery(supabase.from('projects').select('*').eq('user_id', userId)),
+      scopeQuery(supabase.from('tasks').select('*').eq('user_id', userId)),
+      scopeQuery(supabase.from('subtasks').select('*').eq('user_id', userId)),
     ]);
 
     const firstError = [projectsResult, tasksResult, subtasksResult].find((result) => result.error)?.error;
     if (firstError) throw firstError;
     if (!projectsResult.data?.length) return null;
 
-    const filesResult = await supabase.from('files').select('*').eq('user_id', userId);
+    const filesResult = await scopeQuery(supabase.from('files').select('*').eq('user_id', userId));
     if (filesResult.error) {
       if (throwOnError) throw filesResult.error;
       logger.warn('Supabase files load error', filesResult.error);
@@ -276,7 +281,7 @@ export async function saveState(state, options = {}) {
   if (isSupabaseConfigured && options.userId) {
     const syncTask = syncQueue
       .catch(() => undefined)
-      .then(() => syncStateToSupabase(normalized, options.changed, options.userId));
+      .then(() => syncStateToSupabase(normalized, options.changed, options.userId, options.workspaceId));
 
     syncQueue = syncTask.catch((error) => {
       logger.error('Supabase save error', error);
@@ -294,19 +299,24 @@ export function cacheState(state, options = {}) {
   return normalized;
 }
 
-function storageKey(userId) {
+function storageKey(userId, workspaceId) {
+  if (userId && workspaceId) return `${STORAGE_KEY}:user:${userId}:workspace:${workspaceId}`;
   return userId ? `${STORAGE_KEY}:user:${userId}` : STORAGE_KEY;
 }
 
-function readLocalState({ userId = null } = {}) {
+function readLocalState({ userId = null, workspaceId = null } = {}) {
+  const scopedKey = storageKey(userId, workspaceId);
   const userKey = storageKey(userId);
-  const raw = window.localStorage.getItem(userKey) || (userId ? window.localStorage.getItem(STORAGE_KEY) : null);
+  const raw =
+    window.localStorage.getItem(scopedKey) ||
+    (workspaceId ? window.localStorage.getItem(userKey) : null) ||
+    (userId ? window.localStorage.getItem(STORAGE_KEY) : null);
   if (!raw) return clone(defaultData);
   return normalizeData(JSON.parse(raw));
 }
 
-function writeLocalState(state, { userId = null } = {}) {
-  window.localStorage.setItem(storageKey(userId), JSON.stringify(normalizeData(state)));
+function writeLocalState(state, { userId = null, workspaceId = null } = {}) {
+  window.localStorage.setItem(storageKey(userId, workspaceId), JSON.stringify(normalizeData(state)));
 }
 
 async function loadLocalFallback(options = {}) {
@@ -326,6 +336,7 @@ function composeData({ projects, tasks, subtasks, files }) {
   return {
     projects: projects.map((project) => ({
       id: project.id,
+      workspace_id: project.workspace_id || null,
       slug: project.slug || slugify(project.name || project.title || '') || project.id,
       name: project.name || project.title || '',
       color: project.color || '#5e5ce6',
@@ -337,6 +348,7 @@ function composeData({ projects, tasks, subtasks, files }) {
       sync_pending: false,
       files: (filesByProject[project.id] || []).map((file) => ({
         id: file.id,
+        workspace_id: file.workspace_id || project.workspace_id || null,
         name: file.name,
         kind: file.kind || 'link',
         path: file.path || '',
@@ -352,6 +364,7 @@ function composeData({ projects, tasks, subtasks, files }) {
       })),
       tasks: (tasksByProject[project.id] || []).map((task) => ({
         id: task.id,
+        workspace_id: task.workspace_id || project.workspace_id || null,
         title: task.title || task.text || '',
         text: task.title || task.text || '',
         description: task.description || '',
@@ -364,6 +377,7 @@ function composeData({ projects, tasks, subtasks, files }) {
         sync_pending: false,
         subtasks: (subtasksByTask[task.id] || []).map((subtask) => ({
           id: subtask.id,
+          workspace_id: subtask.workspace_id || task.workspace_id || project.workspace_id || null,
           text: subtask.text || subtask.title || '',
           done: Boolean(subtask.done ?? subtask.completed),
           updated_at: subtask.updated_at || null,
@@ -478,8 +492,8 @@ function difference(leftSet, rightSet) {
   return Array.from(leftSet).filter((id) => !rightSet.has(id));
 }
 
-async function syncStateToSupabase(data, changed, userId) {
-  const rows = flattenData(data, changed, userId);
+async function syncStateToSupabase(data, changed, userId, workspaceId) {
+  const rows = flattenData(data, changed, userId, workspaceId);
 
   logger.info('sync: saving', {
     projectCount: rows.projects.length,
@@ -500,11 +514,11 @@ async function syncStateToSupabase(data, changed, userId) {
   });
 }
 
-function flattenData(data, changed, userId) {
-  return flattenUserData(data, changed, userId);
+function flattenData(data, changed, userId, workspaceId) {
+  return flattenUserData(data, changed, userId, workspaceId);
 }
 
-function flattenUserData(data, changed, userId) {
+function flattenUserData(data, changed, userId, workspaceId) {
   const scope = createSyncScope(changed);
   const projects = [];
   const tasks = [];
@@ -518,6 +532,7 @@ function flattenUserData(data, changed, userId) {
       projects.push({
         id: projectId,
         user_id: userId,
+        workspace_id: project.workspace_id || workspaceId || null,
         slug: projectSlug,
         name: project.name,
         color: project.color,
@@ -535,6 +550,7 @@ function flattenUserData(data, changed, userId) {
         files.push({
           id: fileId,
           user_id: userId,
+          workspace_id: file.workspace_id || project.workspace_id || workspaceId || null,
           project_id: projectId,
           name: fileName || 'Untitled file',
           kind: file.kind || 'link',
@@ -557,6 +573,7 @@ function flattenUserData(data, changed, userId) {
         tasks.push({
           id: taskId,
           user_id: userId,
+          workspace_id: task.workspace_id || project.workspace_id || workspaceId || null,
           project_id: projectId,
           title: taskTitle,
           text: taskTitle,
@@ -575,6 +592,7 @@ function flattenUserData(data, changed, userId) {
           subtasks.push({
             id: subtaskId,
             user_id: userId,
+            workspace_id: subtask.workspace_id || task.workspace_id || project.workspace_id || workspaceId || null,
             task_id: taskId,
             text: subtask.text,
             done: subtask.done,
@@ -606,7 +624,7 @@ function shouldSync(scope, key, id) {
 async function upsertFreshRows(table, rows) {
   if (!rows.length) return 0;
 
-  const remoteRows = await fetchRemoteFreshness(table, rows.map((row) => row.id), rows[0]?.user_id);
+  const remoteRows = await fetchRemoteFreshness(table, rows.map((row) => row.id), rows[0]?.user_id, rows[0]?.workspace_id);
   const freshRows = rows.filter((row) => {
     const remoteRow = remoteRows.get(row.id);
     return !remoteRow || eventTimestamp(row) > eventTimestamp(remoteRow);
@@ -621,9 +639,10 @@ async function upsertFreshRows(table, rows) {
   return freshRows.length;
 }
 
-async function fetchRemoteFreshness(table, ids, userId) {
+async function fetchRemoteFreshness(table, ids, userId, workspaceId) {
   let query = supabase.from(table).select('id,updated_at,deleted_at').in('id', ids);
   if (userId) query = query.eq('user_id', userId);
+  if (workspaceId) query = query.eq('workspace_id', workspaceId);
   const { data, error } = await query;
   if (error) {
     throw error;

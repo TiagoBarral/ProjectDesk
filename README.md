@@ -25,6 +25,7 @@ Current release: `v0.6.0` functional alpha / early private beta.
 - Persistent file uploads and link tracking per project
 - JSON export/import backups
 - Email/password login with Supabase Auth
+- Personal workspace bootstrap for signed-in users
 - Completion stats
 - Responsive Android-friendly UI
 - Browser routes for project pages and tabs
@@ -61,6 +62,7 @@ ProjectDesk/
       storage.js
       supabase.js
       auth.js
+      workspaces.js
     App.jsx
     index.css
     main.jsx
@@ -70,6 +72,7 @@ ProjectDesk/
     add-file-storage.sql
     add-project-pinning.sql
     add-auth-rls.sql
+    add-workspaces.sql
   CHANGELOG.md
   README.md
   todo.md
@@ -180,6 +183,7 @@ ProjectDesk uses a storage adapter pattern:
 - Supabase is used when environment variables are configured and a user is signed in.
 - If Supabase is unavailable, the app keeps working from localStorage.
 - Signed-in localStorage cache is scoped by Supabase user id.
+- When workspace support is installed, signed-in cache and synced rows are scoped to the user's personal workspace.
 - Saves write to localStorage first, then sync scoped row changes to Supabase.
 - Remote refresh runs on startup, focus, visibility changes, a timed interval, and after successful saves.
 - Projects, tasks, subtasks, and file metadata use `updated_at` and `deleted_at` so newer edits and soft deletes can converge across devices.
@@ -204,8 +208,9 @@ ProjectDesk now uses Supabase Email/Password Auth for cross-device sync.
 1. In Supabase, enable Email provider authentication.
 2. Create or sign up the first ProjectDesk user.
 3. Run `supabase/add-auth-rls.sql` in the Supabase SQL editor.
-4. If you already had pre-auth rows in Supabase, copy the new user's UUID from Supabase Auth and run the commented backfill block in `supabase/add-auth-rls.sql` so those rows are claimed by your account.
-5. Restart the Vite dev server and sign in.
+4. Run `supabase/add-workspaces.sql` in the Supabase SQL editor.
+5. If you already had pre-auth rows in Supabase, copy the new user's UUID from Supabase Auth and run the commented backfill blocks in the SQL files so those rows are claimed by your account and attached to the personal workspace.
+6. Restart the Vite dev server and sign in.
 
 The app keeps local offline cache behavior. On first sign-in, if no user-scoped cache exists on that browser, ProjectDesk can read the old pre-auth local cache and save it under the signed-in user.
 
