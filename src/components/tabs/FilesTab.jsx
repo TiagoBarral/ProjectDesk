@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
 import { fileIcon, fmtSize } from '../helpers.js';
-import { uploadProjectFile } from '../../lib/fileStorage.js';
+import { getProjectFileUrl, uploadProjectFile } from '../../lib/fileStorage.js';
 
 const uid = () => (window.crypto?.randomUUID ? window.crypto.randomUUID() : Math.random().toString(36).slice(2, 9));
 
-export default function FilesTab({ project, onAddFiles, onDeleteFile, onUpdateFile, openModal }) {
+export default function FilesTab({ project, userId, onAddFiles, onDeleteFile, onUpdateFile, openModal }) {
   const inputRef = useRef(null);
   const [dragOver, setDragOver] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -19,7 +19,7 @@ export default function FilesTab({ project, onAddFiles, onDeleteFile, onUpdateFi
     try {
       const uploadedFiles = [];
       for (const file of files) {
-        uploadedFiles.push(await uploadProjectFile(project.id, file));
+        uploadedFiles.push(await uploadProjectFile(project.id, file, userId));
       }
       onAddFiles(uploadedFiles);
     } catch (error) {
@@ -90,17 +90,22 @@ export default function FilesTab({ project, onAddFiles, onDeleteFile, onUpdateFi
 
 function FileCard({ file, onDelete, onEdit }) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [openError, setOpenError] = useState('');
   const menuRef = useRef(null);
   const fileUrl = file.public_url || file.path;
   const meta = file.kind === 'link' ? file.path : fmtSize(file.size);
-  const openFile = () => {
+  const openFile = async () => {
+    setOpenError('');
     if (file.kind === 'link') {
       const target = /^https?:\/\//i.test(file.path) || /^file:/i.test(file.path) ? file.path : `file:///${file.path.replace(/\\/g, '/')}`;
       window.open(target, '_blank', 'noopener,noreferrer');
       return;
     }
-    if (fileUrl) {
-      window.open(fileUrl, '_blank', 'noopener,noreferrer');
+    try {
+      const url = await getProjectFileUrl(file);
+      if (url) window.open(url, '_blank', 'noopener,noreferrer');
+    } catch (error) {
+      setOpenError(error.message || 'Could not open file.');
     }
   };
 
@@ -152,6 +157,7 @@ function FileCard({ file, onDelete, onEdit }) {
       <span className={`file-badge ${file.kind === 'link' ? 'file-badge-link' : 'file-badge-up'}`}>{file.kind === 'link' ? 'LINK' : 'UPLOAD'}</span>
       <div className="file-meta">{meta?.length > 28 ? `...${meta.slice(-26)}` : meta}</div>
       <div className="file-meta">{file.date || ''}</div>
+      {openError && <div className="file-error">{openError}</div>}
     </div>
   );
 }

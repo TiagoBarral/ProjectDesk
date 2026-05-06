@@ -15,14 +15,17 @@ function safeFileName(name) {
   return cleaned || fallback;
 }
 
-export async function uploadProjectFile(projectId, file) {
+export async function uploadProjectFile(projectId, file, userId) {
   if (!isSupabaseConfigured || !supabase) {
     throw new Error('Supabase Storage is not configured.');
+  }
+  if (!userId) {
+    throw new Error('Sign in before uploading files.');
   }
 
   const fileId = uid();
   const uploadedAt = new Date();
-  const storagePath = `projects/${projectId}/${fileId}-${safeFileName(file.name)}`;
+  const storagePath = `${userId}/projects/${projectId}/${fileId}-${safeFileName(file.name)}`;
   const { error } = await supabase.storage
     .from(FILE_BUCKET)
     .upload(storagePath, file, {
@@ -33,17 +36,16 @@ export async function uploadProjectFile(projectId, file) {
 
   if (error) throw error;
 
-  const { data } = supabase.storage.from(FILE_BUCKET).getPublicUrl(storagePath);
-  const publicUrl = data?.publicUrl || '';
   const metadata = {
     id: fileId,
+    user_id: userId,
     project_id: projectId,
     name: file.name,
     kind: 'upload',
-    path: publicUrl,
+    path: '',
     storage_bucket: FILE_BUCKET,
     storage_path: storagePath,
-    public_url: publicUrl,
+    public_url: '',
     mime_type: file.type || '',
     size_bytes: file.size,
     date_label: uploadedAt.toLocaleDateString(),
@@ -61,10 +63,10 @@ export async function uploadProjectFile(projectId, file) {
     id: fileId,
     name: file.name,
     kind: 'upload',
-    path: publicUrl,
+    path: '',
     storage_bucket: FILE_BUCKET,
     storage_path: storagePath,
-    public_url: publicUrl,
+    public_url: '',
     mimeType: file.type || '',
     size: file.size,
     date: uploadedAt.toLocaleDateString(),
@@ -72,4 +74,24 @@ export async function uploadProjectFile(projectId, file) {
     deleted_at: null,
     sync_pending: false,
   };
+}
+
+export async function getProjectFileUrl(file) {
+  if (!file.storage_path && (file.public_url || file.path)) {
+    return file.public_url || file.path;
+  }
+
+  if (!isSupabaseConfigured || !supabase || !file.storage_path) {
+    throw new Error('This uploaded file is missing Storage metadata.');
+  }
+
+  const { data, error } = await supabase.storage
+    .from(file.storage_bucket || FILE_BUCKET)
+    .createSignedUrl(file.storage_path, 60 * 10);
+
+  if (error) {
+    if (file.public_url || file.path) return file.public_url || file.path;
+    throw error;
+  }
+  return data?.signedUrl || '';
 }

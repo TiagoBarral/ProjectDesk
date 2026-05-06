@@ -9,7 +9,10 @@ import PriorityDashboard from './components/PriorityDashboard.jsx';
 import ProjectCard from './components/ProjectCard.jsx';
 import ProjectDetail from './components/ProjectDetail.jsx';
 import SyncStatus from './components/SyncStatus.jsx';
+import AuthScreen, { AccountMenu } from './components/AuthScreen.jsx';
 import { DEFAULT_PROJECT_COLOR } from './components/helpers.js';
+import { getCurrentSession, subscribeToAuth } from './lib/auth.js';
+import { isSupabaseConfigured } from './lib/supabase.js';
 
 const uid = () => (window.crypto?.randomUUID ? window.crypto.randomUUID() : Math.random().toString(36).slice(2, 9));
 const nowIso = () => new Date().toISOString();
@@ -135,6 +138,8 @@ export default function App() {
   const [isInitializing, setIsInitializing] = useState(true);
   const [syncState, setSyncState] = useState('idle');
   const [lastSyncedAt, setLastSyncedAt] = useState(null);
+  const [authReady, setAuthReady] = useState(!isSupabaseConfigured);
+  const [session, setSession] = useState(null);
   const [view, setView] = useState(initialRoute.view);
   const [routeProjectParam, setRouteProjectParam] = useState(initialRoute.routeProjectParam);
   const [activeTab, setActiveTab] = useState(initialRoute.activeTab);
@@ -143,13 +148,37 @@ export default function App() {
   const dataRef = useRef(defaultData);
   const isRefreshingRef = useRef(false);
   const { updateAvailable, reloadForUpdate } = usePwaUpdate();
+  const user = session?.user || null;
+  const syncUserId = user?.id || null;
 
   useEffect(() => {
     dataRef.current = data;
   }, [data]);
 
+  useEffect(() => {
+    if (!isSupabaseConfigured) return undefined;
+
+    let alive = true;
+    getCurrentSession()
+      .then(({ session: currentSession }) => {
+        if (!alive) return;
+        setSession(currentSession);
+        setAuthReady(true);
+      })
+      .catch((error) => {
+        logger.error('Auth session load error', error);
+        if (alive) setAuthReady(true);
+      });
+
+    return subscribeToAuth((_event, nextSession) => {
+      setSession(nextSession);
+      setAuthReady(true);
+    });
+  }, []);
+
   const refreshFromRemote = useCallback(async ({ silent = false } = {}) => {
     if (isRefreshingRef.current || isInitializing) return null;
+    if (!syncUserId) return null;
     if (!window.navigator.onLine) {
       if (!silent) setSyncState('offline');
       return false;
@@ -159,7 +188,7 @@ export default function App() {
     if (!silent) setSyncState('syncing');
 
     try {
-      const remoteState = await loadRemoteState({ throwOnError: true });
+      const remoteState = await loadRemoteState({ throwOnError: true, userId: syncUserId });
       if (!remoteState) {
         setLastSyncedAt(new Date());
         if (!silent) setSyncState('synced');
@@ -170,14 +199,14 @@ export default function App() {
       let nextState = mergedState;
       dataRef.current = nextState;
       setData(nextState);
-      cacheState(nextState);
+      cacheState(nextState, { userId: syncUserId });
 
       const pendingScope = getPendingSyncScope(mergedState);
 
       if (hasPendingSync(pendingScope)) {
         try {
-          await saveState(mergedState, { changed: pendingScope });
-          const confirmedRemoteState = await loadRemoteState({ throwOnError: true });
+          await saveState(mergedState, { changed: pendingScope, userId: syncUserId });
+          const confirmedRemoteState = await loadRemoteState({ throwOnError: true, userId: syncUserId });
           if (confirmedRemoteState) {
             nextState = mergeStateByUpdatedAt(mergedState, normalizeData(confirmedRemoteState));
           }
@@ -188,7 +217,7 @@ export default function App() {
 
       dataRef.current = nextState;
       setData(nextState);
-      cacheState(nextState);
+      cacheState(nextState, { userId: syncUserId });
       setLastSyncedAt(new Date());
       if (!silent) setSyncState('synced');
       return nextState;
@@ -199,21 +228,28 @@ export default function App() {
     } finally {
       isRefreshingRef.current = false;
     }
-  }, [isInitializing]);
+  }, [isInitializing, syncUserId]);
 
   useEffect(() => {
+    if (!authReady) return undefined;
+
     let alive = true;
     async function hydrateState() {
       let usedRemote = false;
       let hydratedState = null;
+      setIsInitializing(true);
+      setHasHydrated(false);
       try {
-        const localState = await loadState();
+        const localState = await loadState({ userId: syncUserId });
         if (!alive) return;
         const normalizedLocal = normalizeData(localState);
         hydratedState = normalizedLocal;
         setData(normalizedLocal);
+        if (syncUserId) {
+          cacheState(normalizedLocal, { userId: syncUserId });
+        }
 
-        const remoteState = await loadRemoteState();
+        const remoteState = await loadRemoteState({ userId: syncUserId });
         if (!alive) return;
 
         const normalizedRemote = remoteState ? normalizeData(remoteState) : null;
@@ -224,7 +260,12 @@ export default function App() {
           const mergedState = mergeStateByUpdatedAt(normalizedLocal, normalizedRemote);
           hydratedState = mergedState;
           setData(mergedState);
-          cacheState(mergedState);
+          cacheState(mergedState, { userId: syncUserId });
+        } else if (syncUserId && normalizedLocal.projects?.length) {
+          setSyncState('syncing');
+          await saveState(normalizedLocal, { userId: syncUserId });
+          setLastSyncedAt(new Date());
+          setSyncState('synced');
         }
       } catch (error) {
         logger.error('Hydration error', error);
@@ -248,7 +289,7 @@ export default function App() {
     return () => {
       alive = false;
     };
-  }, []);
+  }, [authReady, syncUserId]);
 
   useEffect(() => {
     if (!hasHydrated || isInitializing) return undefined;
@@ -369,15 +410,19 @@ export default function App() {
 
     if (!hasHydrated || isInitializing) return;
 
-    cacheState(normalized);
+    cacheState(normalized, { userId: syncUserId });
 
     if (!window.navigator.onLine) {
       setSyncState('offline');
       return;
     }
+    if (!syncUserId) {
+      setSyncState('idle');
+      return;
+    }
 
     setSyncState('syncing');
-    saveState(normalized, { changed })
+    saveState(normalized, { changed, userId: syncUserId })
       .then(() => {
         setLastSyncedAt(new Date());
         setSyncState('synced');
@@ -387,7 +432,7 @@ export default function App() {
         logger.error('State persistence error', error);
         setSyncState(window.navigator.onLine ? 'error' : 'offline');
       });
-  }, [hasHydrated, isInitializing, refreshFromRemote]);
+  }, [hasHydrated, isInitializing, refreshFromRemote, syncUserId]);
 
   const updateData = useCallback((updater, changed) => {
     const nextState = typeof updater === 'function' ? updater(data) : updater;
@@ -725,6 +770,20 @@ export default function App() {
     const replacement = markImportedStateForSync(backupState, dataRef.current, timestamp);
     persist(replacement);
   };
+  const openDataTools = () => openModal(({ onClose }) => (
+    <DataToolsModal onClose={onClose} onExport={exportBackup} onImport={importBackup} />
+  ));
+  const openNewProject = () => openModal(({ onClose }) => (
+    <NewProjectModal onClose={onClose} onSubmit={addProject} />
+  ));
+
+  if (isSupabaseConfigured && authReady && !user) {
+    return <AuthScreen authReady={authReady} isSupabaseConfigured={isSupabaseConfigured} />;
+  }
+
+  if (isSupabaseConfigured && !authReady) {
+    return <AuthScreen authReady={authReady} isSupabaseConfigured={isSupabaseConfigured} />;
+  }
 
   return (
     <>
@@ -734,6 +793,27 @@ export default function App() {
         <RouteLoading />
       ) : view === 'home' ? (
         <main className="home">
+          <div className="projects-section">
+            <div className="home-header">
+              <div>
+                <h1>Projects</h1>
+                <p>Manage tasks, notes, and files per project</p>
+              </div>
+              <div className="home-header-actions">
+                <button className="add-btn" type="button" onClick={openNewProject}>+ New Project</button>
+                {isSupabaseConfigured ? (
+                  <AccountMenu user={user} onOpenData={openDataTools} onSignOut={() => setSyncState('idle')} />
+                ) : (
+                  <button className="data-btn" type="button" onClick={openDataTools}>Data</button>
+                )}
+              </div>
+            </div>
+            <div className="card-grid">
+              {projects.map((project) => (
+                <ProjectCard key={project.id} project={project} onOpen={() => openProject(project.id)} />
+              ))}
+            </div>
+          </div>
           <PriorityDashboard
             projects={projects}
             filters={data.filters}
@@ -742,38 +822,6 @@ export default function App() {
             onUpdateTask={updateTask}
             openModal={openModal}
           />
-          <div className="projects-section">
-            <div className="home-header">
-              <div>
-                <h1>Projects</h1>
-                <p>Manage tasks, notes, and files per project</p>
-              </div>
-              <button
-                className="data-btn"
-                type="button"
-                onClick={() => openModal(({ onClose }) => (
-                  <DataToolsModal onClose={onClose} onExport={exportBackup} onImport={importBackup} />
-                ))}
-              >
-                Data
-              </button>
-            </div>
-            <div className="card-grid">
-              <button
-                className="new-project-card"
-                type="button"
-                onClick={() => openModal(({ onClose }) => (
-                  <NewProjectModal onClose={onClose} onSubmit={addProject} />
-                ))}
-              >
-                <span className="new-project-icon" aria-hidden="true" />
-                <span className="new-project-label">New Project</span>
-              </button>
-              {projects.map((project) => (
-                <ProjectCard key={project.id} project={project} onOpen={() => openProject(project.id)} />
-              ))}
-            </div>
-          </div>
         </main>
       ) : (
         <ProjectDetail
@@ -799,6 +847,7 @@ export default function App() {
           onUpdateFile={(fileId, updates) => updateFile(detailProject.id, fileId, updates)}
           onShowSaved={showSaved}
           openModal={openModal}
+          userId={syncUserId}
         />
       )}
       {updateAvailable && <UpdateToast onReload={reloadForUpdate} />}

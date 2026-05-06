@@ -7,6 +7,9 @@ This project follows the spirit of [Keep a Changelog](https://keepachangelog.com
 ## [Unreleased]
 
 ### Added
+- Added Supabase email/password authentication with a sign-in/sign-up screen.
+- Added authenticated row ownership and RLS setup SQL for projects, tasks, subtasks, and file metadata.
+- Added user-prefixed Supabase Storage uploads with signed URL opening for uploaded files.
 - Added Vitest coverage for route helpers and storage transforms, plus lint, format, and smoke-test scripts.
 - Added missing accessible labels for icon-only file and subtask action buttons.
 - Added subtask creation directly inside the Task Details modal.
@@ -24,6 +27,10 @@ This project follows the spirit of [Keep a Changelog](https://keepachangelog.com
 - Added a controlled PWA update toast with a Reload action for new deployments.
 
 ### Changed
+- Moved the Projects section above the Priority Dashboard on desktop and mobile.
+- Replaced separate home-page Data and Sign out controls with a compact account menu.
+- Moved New Project from the project card grid into the Projects header.
+- Scoped Supabase sync and signed-in local cache by Supabase user id.
 - Moved mobile task, file, and project secondary actions into compact overflow menus to reduce cramped phone layouts.
 - Changed uploaded file persistence from browser-only data URLs to metadata synced through Supabase.
 - Changed the mobile home layout to show Projects before the Priority Dashboard.
@@ -37,6 +44,7 @@ This project follows the spirit of [Keep a Changelog](https://keepachangelog.com
 - Reduced Priority Dashboard task title weight for calmer scanning.
 
 ### Fixed
+- Saved authenticated Supabase rows parent-first so RLS policies do not reject child task, subtask, or file upserts.
 - Added document-level outside-tap handling so mobile overflow menus close reliably when tapping away.
 - Made the mobile overflow menu outside-tap layer reliably catch taps so open menus close when tapping away.
 - Centered mobile overflow menus so every action remains visible above the bottom controls.

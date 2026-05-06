@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
+  cacheState,
   getPendingSyncScope,
   hasPendingSync,
+  loadState,
   mergeStateByUpdatedAt,
   normalizeData,
 } from "./storage.js";
@@ -156,5 +158,32 @@ describe("storage transforms", () => {
 
     expect(merged.projects[0].name).toBe("Remote name");
     expect(merged.projects[0].sync_pending).toBe(false);
+  });
+
+  it("keeps authenticated local cache separate from the legacy anonymous cache", async () => {
+    const values = new Map();
+    globalThis.window = {
+      localStorage: {
+        getItem: (key) => values.get(key) || null,
+        setItem: (key, value) => values.set(key, value),
+      },
+    };
+
+    cacheState({
+      projects: [{ id: projectId, name: "Legacy", files: [], tasks: [] }],
+    });
+    cacheState(
+      {
+        projects: [
+          { id: projectId, name: "User scoped", files: [], tasks: [] },
+        ],
+      },
+      { userId: "user-1" },
+    );
+
+    expect((await loadState()).projects[0].name).toBe("Legacy");
+    expect((await loadState({ userId: "user-1" })).projects[0].name).toBe(
+      "User scoped",
+    );
   });
 });

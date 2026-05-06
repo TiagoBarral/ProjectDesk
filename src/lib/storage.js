@@ -201,25 +201,25 @@ export function hasPendingSync(scope) {
 
 let syncQueue = Promise.resolve();
 
-export async function loadState() {
-  return loadLocalFallback();
+export async function loadState(options = {}) {
+  return loadLocalFallback(options);
 }
 
-export async function loadRemoteState({ throwOnError = false } = {}) {
-  if (!isSupabaseConfigured) return null;
+export async function loadRemoteState({ throwOnError = false, userId = null } = {}) {
+  if (!isSupabaseConfigured || !userId) return null;
 
   try {
     const [projectsResult, tasksResult, subtasksResult] = await Promise.all([
-      supabase.from('projects').select('*'),
-      supabase.from('tasks').select('*'),
-      supabase.from('subtasks').select('*'),
+      supabase.from('projects').select('*').eq('user_id', userId),
+      supabase.from('tasks').select('*').eq('user_id', userId),
+      supabase.from('subtasks').select('*').eq('user_id', userId),
     ]);
 
     const firstError = [projectsResult, tasksResult, subtasksResult].find((result) => result.error)?.error;
     if (firstError) throw firstError;
     if (!projectsResult.data?.length) return null;
 
-    const filesResult = await supabase.from('files').select('*');
+    const filesResult = await supabase.from('files').select('*').eq('user_id', userId);
     if (filesResult.error) {
       if (throwOnError) throw filesResult.error;
       logger.warn('Supabase files load error', filesResult.error);
@@ -271,12 +271,12 @@ export function mergeStateByUpdatedAt(localState, remoteState) {
 
 export async function saveState(state, options = {}) {
   const normalized = normalizeData(state);
-  writeLocalState(normalized);
+  writeLocalState(normalized, options);
 
-  if (isSupabaseConfigured) {
+  if (isSupabaseConfigured && options.userId) {
     const syncTask = syncQueue
       .catch(() => undefined)
-      .then(() => syncStateToSupabase(normalized, options.changed));
+      .then(() => syncStateToSupabase(normalized, options.changed, options.userId));
 
     syncQueue = syncTask.catch((error) => {
       logger.error('Supabase save error', error);
@@ -288,25 +288,30 @@ export async function saveState(state, options = {}) {
   return normalized;
 }
 
-export function cacheState(state) {
+export function cacheState(state, options = {}) {
   const normalized = normalizeData(state);
-  writeLocalState(normalized);
+  writeLocalState(normalized, options);
   return normalized;
 }
 
-function readLocalState() {
-  const raw = window.localStorage.getItem(STORAGE_KEY);
+function storageKey(userId) {
+  return userId ? `${STORAGE_KEY}:user:${userId}` : STORAGE_KEY;
+}
+
+function readLocalState({ userId = null } = {}) {
+  const userKey = storageKey(userId);
+  const raw = window.localStorage.getItem(userKey) || (userId ? window.localStorage.getItem(STORAGE_KEY) : null);
   if (!raw) return clone(defaultData);
   return normalizeData(JSON.parse(raw));
 }
 
-function writeLocalState(state) {
-  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(normalizeData(state)));
+function writeLocalState(state, { userId = null } = {}) {
+  window.localStorage.setItem(storageKey(userId), JSON.stringify(normalizeData(state)));
 }
 
-async function loadLocalFallback() {
+async function loadLocalFallback(options = {}) {
   try {
-    return readLocalState();
+    return readLocalState(options);
   } catch (error) {
     logger.error('localStorage load error', error);
     return clone(defaultData);
@@ -473,8 +478,8 @@ function difference(leftSet, rightSet) {
   return Array.from(leftSet).filter((id) => !rightSet.has(id));
 }
 
-async function syncStateToSupabase(data, changed) {
-  const rows = flattenData(data, changed);
+async function syncStateToSupabase(data, changed, userId) {
+  const rows = flattenData(data, changed, userId);
 
   logger.info('sync: saving', {
     projectCount: rows.projects.length,
@@ -482,22 +487,24 @@ async function syncStateToSupabase(data, changed) {
     fileCount: rows.files.length,
   });
 
-  const results = await Promise.all([
-    upsertFreshRows('projects', rows.projects),
-    upsertFreshRows('tasks', rows.tasks),
-    upsertFreshRows('subtasks', rows.subtasks),
-    upsertFreshRows('files', rows.files),
-  ]);
+  const projectCount = await upsertFreshRows('projects', rows.projects);
+  const taskCount = await upsertFreshRows('tasks', rows.tasks);
+  const subtaskCount = await upsertFreshRows('subtasks', rows.subtasks);
+  const fileCount = await upsertFreshRows('files', rows.files);
 
   logger.info('sync: saved', {
-    projectCount: results[0],
-    taskCount: results[1],
-    subtaskCount: results[2],
-    fileCount: results[3],
+    projectCount,
+    taskCount,
+    subtaskCount,
+    fileCount,
   });
 }
 
-function flattenData(data, changed) {
+function flattenData(data, changed, userId) {
+  return flattenUserData(data, changed, userId);
+}
+
+function flattenUserData(data, changed, userId) {
   const scope = createSyncScope(changed);
   const projects = [];
   const tasks = [];
@@ -510,6 +517,7 @@ function flattenData(data, changed) {
     if (shouldSync(scope, 'projects', projectId)) {
       projects.push({
         id: projectId,
+        user_id: userId,
         slug: projectSlug,
         name: project.name,
         color: project.color,
@@ -526,6 +534,7 @@ function flattenData(data, changed) {
       if (shouldSync(scope, 'files', fileId)) {
         files.push({
           id: fileId,
+          user_id: userId,
           project_id: projectId,
           name: fileName || 'Untitled file',
           kind: file.kind || 'link',
@@ -547,6 +556,7 @@ function flattenData(data, changed) {
       if (shouldSync(scope, 'tasks', taskId)) {
         tasks.push({
           id: taskId,
+          user_id: userId,
           project_id: projectId,
           title: taskTitle,
           text: taskTitle,
@@ -564,6 +574,7 @@ function flattenData(data, changed) {
         if (shouldSync(scope, 'subtasks', subtaskId)) {
           subtasks.push({
             id: subtaskId,
+            user_id: userId,
             task_id: taskId,
             text: subtask.text,
             done: subtask.done,
@@ -595,7 +606,7 @@ function shouldSync(scope, key, id) {
 async function upsertFreshRows(table, rows) {
   if (!rows.length) return 0;
 
-  const remoteRows = await fetchRemoteFreshness(table, rows.map((row) => row.id));
+  const remoteRows = await fetchRemoteFreshness(table, rows.map((row) => row.id), rows[0]?.user_id);
   const freshRows = rows.filter((row) => {
     const remoteRow = remoteRows.get(row.id);
     return !remoteRow || eventTimestamp(row) > eventTimestamp(remoteRow);
@@ -610,8 +621,10 @@ async function upsertFreshRows(table, rows) {
   return freshRows.length;
 }
 
-async function fetchRemoteFreshness(table, ids) {
-  const { data, error } = await supabase.from(table).select('id,updated_at,deleted_at').in('id', ids);
+async function fetchRemoteFreshness(table, ids, userId) {
+  let query = supabase.from(table).select('id,updated_at,deleted_at').in('id', ids);
+  if (userId) query = query.eq('user_id', userId);
+  const { data, error } = await query;
   if (error) {
     throw error;
   }

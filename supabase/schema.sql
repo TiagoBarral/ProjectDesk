@@ -1,6 +1,6 @@
 -- ProjectDesk Supabase schema
--- Current phase: simple cross-device sync, no login/auth, no RLS, no realtime.
--- Later, when authentication is added, enable RLS and add owner-based policies.
+-- Base schema. For the current authenticated sync phase, run
+-- supabase/add-auth-rls.sql after this schema to add user ownership and RLS.
 
 create table if not exists public.projects (
   id uuid primary key default gen_random_uuid(),

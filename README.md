@@ -24,6 +24,7 @@ Current release: `v0.6.0` functional alpha / early private beta.
 - Project notes
 - Persistent file uploads and link tracking per project
 - JSON export/import backups
+- Email/password login with Supabase Auth
 - Completion stats
 - Responsive Android-friendly UI
 - Browser routes for project pages and tabs
@@ -34,7 +35,7 @@ Current release: `v0.6.0` functional alpha / early private beta.
 - Installable PWA support
 - Controlled PWA update prompt for new deployments
 - localStorage persistence by default
-- Optional Supabase sync with localStorage fallback
+- Authenticated Supabase sync with localStorage fallback
 - Sync status indicator with last synced, syncing, offline, and error states
 
 ## Tech Stack
@@ -59,6 +60,7 @@ ProjectDesk/
     lib/
       storage.js
       supabase.js
+      auth.js
     App.jsx
     index.css
     main.jsx
@@ -67,6 +69,7 @@ ProjectDesk/
     add-task-title-description.sql
     add-file-storage.sql
     add-project-pinning.sql
+    add-auth-rls.sql
   CHANGELOG.md
   README.md
   todo.md
@@ -140,6 +143,18 @@ npm run format
 
 The formatter is intentionally scoped to the new tooling/test files to avoid a noisy whole-app formatting pass.
 
+Check formatting without rewriting files:
+
+```bash
+npm run format:check
+```
+
+Check production dependency advisories:
+
+```bash
+npm audit --omit=dev
+```
+
 ## Routing
 
 The app uses browser routes without adding a routing library.
@@ -162,8 +177,9 @@ Old id-based links still resolve and are canonicalized to the current name-based
 ProjectDesk uses a storage adapter pattern:
 
 - localStorage is always used as the offline cache.
-- Supabase is used when environment variables are configured.
+- Supabase is used when environment variables are configured and a user is signed in.
 - If Supabase is unavailable, the app keeps working from localStorage.
+- Signed-in localStorage cache is scoped by Supabase user id.
 - Saves write to localStorage first, then sync scoped row changes to Supabase.
 - Remote refresh runs on startup, focus, visibility changes, a timed interval, and after successful saves.
 - Projects, tasks, subtasks, and file metadata use `updated_at` and `deleted_at` so newer edits and soft deletes can converge across devices.
@@ -171,13 +187,29 @@ ProjectDesk uses a storage adapter pattern:
 - Stale local rows are skipped during Supabase upsert so older devices do not overwrite newer remote data.
 - Remote refresh applies Supabase data to the UI before retrying pending local edits, so one failed retry does not block cross-device updates.
 - Uploaded file bytes are stored in Supabase Storage bucket `project-files`; localStorage stores metadata only.
+- New uploaded files are stored under user-specific Storage paths and opened with signed URLs.
 
 The storage layer lives in:
 
 ```text
 src/lib/storage.js
 src/lib/supabase.js
+src/lib/auth.js
 ```
+
+## Supabase Auth Setup
+
+ProjectDesk now uses Supabase Email/Password Auth for cross-device sync.
+
+1. In Supabase, enable Email provider authentication.
+2. Create or sign up the first ProjectDesk user.
+3. Run `supabase/add-auth-rls.sql` in the Supabase SQL editor.
+4. If you already had pre-auth rows in Supabase, copy the new user's UUID from Supabase Auth and run the commented backfill block in `supabase/add-auth-rls.sql` so those rows are claimed by your account.
+5. Restart the Vite dev server and sign in.
+
+The app keeps local offline cache behavior. On first sign-in, if no user-scoped cache exists on that browser, ProjectDesk can read the old pre-auth local cache and save it under the signed-in user.
+
+The `project-files` bucket is prepared for user-prefixed private Storage paths. Keep the bucket public until any legacy pre-auth uploaded objects have been checked or migrated; then run the final commented `update storage.buckets set public = false` statement in `supabase/add-auth-rls.sql`.
 
 ## Supabase Sync
 

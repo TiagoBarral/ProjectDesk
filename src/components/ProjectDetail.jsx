@@ -88,7 +88,7 @@ export default function ProjectDetail(props) {
       <div className="content">
         {activeTab === 'tasks' && <TasksTab project={project} stats={projectStats} {...props} />}
         {activeTab === 'notes' && <NotesTab project={project} onUpdateNotes={props.onUpdateNotes} onShowSaved={props.onShowSaved} />}
-        {activeTab === 'files' && <FilesTab project={project} onAddFiles={props.onAddFiles} onDeleteFile={props.onDeleteFile} onUpdateFile={props.onUpdateFile} openModal={props.openModal} />}
+        {activeTab === 'files' && <FilesTab project={project} userId={props.userId} onAddFiles={props.onAddFiles} onDeleteFile={props.onDeleteFile} onUpdateFile={props.onUpdateFile} openModal={props.openModal} />}
       </div>
     </main>
   );

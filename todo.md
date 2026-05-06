@@ -20,7 +20,7 @@
 ## File Uploads
 - [x] Test uploading a small file from desktop and opening it after refresh.
 - [x] Test uploading a small file from Android and opening it on desktop.
-- [ ] Later, after login/auth exists, make the `project-files` bucket private and switch uploads to signed URLs.
+- [ ] After checking legacy uploaded objects, make the `project-files` bucket private. New uploads already use user-prefixed paths and signed URLs.
 - [ ] Later, add physical Storage object cleanup after file metadata soft-delete is stable.
 
 ## Supabase Setup Notes
@@ -147,7 +147,7 @@ Goal: support multi-user or production use only if the app grows.
 - [ ] Add conflict handling.
 
 ## Future Auth
-- [ ] Later: add login/auth and update Supabase RLS policies for authenticated users.
+- [x] Add login/auth and update Supabase RLS policies for authenticated users.
 - [ ] Add user profile/workspace support if more than one person will use the app.
 - [ ] Add migration path from anonymous `workspace_id = 'default'` data to authenticated data.
 
