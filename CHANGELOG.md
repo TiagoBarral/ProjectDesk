@@ -55,6 +55,7 @@ This project follows the spirit of [Keep a Changelog](https://keepachangelog.com
 - Reduced Priority Dashboard task title weight for calmer scanning.
 
 ### Fixed
+- Changed the mobile account/workspace menu to a compact gear button with a viewport-safe centered menu.
 - Saved authenticated Supabase rows parent-first so RLS policies do not reject child task, subtask, or file upserts.
 - Added document-level outside-tap handling so mobile overflow menus close reliably when tapping away.
 - Made the mobile overflow menu outside-tap layer reliably catch taps so open menus close when tapping away.

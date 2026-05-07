@@ -129,33 +129,36 @@ export function AccountMenu({ user, workspace, onOpenData, onSignOut }) {
         onClick={() => setIsOpen((open) => !open)}
       >
         <span className="account-label-email" title={user?.email || ''}>{user?.email || 'Local only'}</span>
-        <span className="account-label-mobile">{workspace?.name || 'Account'}</span>
+        <span className="account-label-mobile" aria-hidden="true">⚙</span>
         <span aria-hidden="true">⌄</span>
       </button>
       {isOpen && (
-        <div className="account-panel" role="menu">
-          {workspace?.name && (
-            <div className="account-workspace">
-              <span>Workspace</span>
-              <strong>{workspace.name}</strong>
-            </div>
-          )}
-          <button
-            type="button"
-            role="menuitem"
-            onClick={() => {
-              setIsOpen(false);
-              onOpenData?.();
-            }}
-          >
-            Data / Backup
-          </button>
-          {user && (
-            <button type="button" role="menuitem" onClick={handleSignOut} disabled={isSigningOut}>
-              {isSigningOut ? 'Signing out...' : 'Sign out'}
+        <>
+          <button className="account-menu-backdrop" type="button" aria-label="Close account menu" onClick={() => setIsOpen(false)} />
+          <div className="account-panel" role="menu">
+            {workspace?.name && (
+              <div className="account-workspace">
+                <span>Workspace</span>
+                <strong>{workspace.name}</strong>
+              </div>
+            )}
+            <button
+              type="button"
+              role="menuitem"
+              onClick={() => {
+                setIsOpen(false);
+                onOpenData?.();
+              }}
+            >
+              Data / Backup
             </button>
-          )}
-        </div>
+            {user && (
+              <button type="button" role="menuitem" onClick={handleSignOut} disabled={isSigningOut}>
+                {isSigningOut ? 'Signing out...' : 'Sign out'}
+              </button>
+            )}
+          </div>
+        </>
       )}
     </div>
   );

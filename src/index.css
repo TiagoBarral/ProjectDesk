@@ -41,6 +41,7 @@ button{appearance:none;}
 .account-trigger:hover,.account-trigger[aria-expanded="true"]{border-color:var(--border2);color:#327fd1;background:#f8fbff;}
 .account-trigger span:first-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .account-label-mobile{display:none;}
+.account-menu-backdrop{display:none;}
 .account-panel{position:absolute;right:0;top:calc(100% + 8px);z-index:60;min-width:180px;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:6px;box-shadow:0 16px 42px rgba(15,23,42,.14);display:flex;flex-direction:column;gap:2px;}
 .account-workspace{padding:9px 11px 10px;border-bottom:1px solid var(--border);margin-bottom:3px;}
 .account-workspace span{display:block;color:var(--text3);font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;margin-bottom:2px;}
@@ -325,10 +326,16 @@ button{appearance:none;}
   .projects-section{order:1;margin-bottom:36px;}
   .dash-section{order:2;margin-bottom:34px;padding-top:14px;}
   .home-header{margin-bottom:18px;flex-wrap:wrap;}
-  .home-header-actions{justify-content:flex-start;}
+  .home-header-actions{position:absolute;right:16px;top:24px;justify-content:flex-end;}
   .account-label-email{display:none;}
-  .account-label-mobile{display:inline;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-  .account-trigger{max-width:190px;min-height:34px;padding:6px 11px;font-size:12px;background:#fff;}
+  .account-label-mobile{display:inline;font-size:16px;line-height:1;}
+  .account-trigger{width:38px;height:38px;min-height:38px;max-width:38px;padding:0;justify-content:center;border-radius:50%;font-size:0;background:#fff;}
+  .account-trigger span:last-child{display:none;}
+  .account-menu-backdrop{display:block;position:fixed;inset:0;z-index:139;background:rgba(0,0,0,.001);border:0;padding:0;cursor:default;touch-action:manipulation;}
+  .account-panel{position:fixed;left:18px;right:18px;top:50%;bottom:auto;z-index:140;min-width:0;width:auto;transform:translateY(-50%);padding:8px;border-radius:16px;box-shadow:0 18px 48px rgba(15,23,42,.22);}
+  .account-panel button{min-height:44px;font-size:14px;padding:11px 12px;border-radius:12px;}
+  .account-workspace{padding:11px 12px 12px;}
+  .account-workspace strong{max-width:none;font-size:14px;}
   .project-toolbar{grid-template-columns:minmax(0,1fr) 92px;gap:8px 9px;margin:-7px 0 12px;align-items:center;}
   .project-search-wrap{grid-column:1 / -1;}
   .project-search,.project-status-filter{min-height:38px;font-size:12px;border-radius:14px;}
@@ -341,8 +348,6 @@ button{appearance:none;}
   .project-toolbar.has-filter .project-filter-count{display:block;}
   .project-clear-filter{justify-self:end;min-height:30px;padding:5px 10px;font-size:11px;}
   .account-menu{min-width:0;}
-  .account-trigger{max-width:min(190px,calc(100vw - 48px));}
-  .account-panel{right:0;min-width:min(220px,calc(100vw - 32px));}
   .auth-page{align-items:flex-end;padding:8px;}
   .auth-panel{border-radius:22px 22px 12px 12px;padding:24px 20px;}
   .auth-form input{min-height:48px;font-size:16px;}
@@ -462,6 +467,7 @@ button{appearance:none;}
 }
 @media(max-width:460px){
   .home{padding:20px 12px 28px;}
+  .home-header-actions{right:12px;top:20px;}
   .home-header{margin-bottom:14px;}
   .home-header h1{font-size:26px;}
   .projects-section{margin-bottom:32px;}
