@@ -128,7 +128,8 @@ export function AccountMenu({ user, workspace, onOpenData, onSignOut }) {
         aria-expanded={isOpen}
         onClick={() => setIsOpen((open) => !open)}
       >
-        <span title={user?.email || ''}>{user?.email || 'Local only'}</span>
+        <span className="account-label-email" title={user?.email || ''}>{user?.email || 'Local only'}</span>
+        <span className="account-label-mobile">{workspace?.name || 'Account'}</span>
         <span aria-hidden="true">⌄</span>
       </button>
       {isOpen && (

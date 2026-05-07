@@ -32,6 +32,7 @@ This project follows the spirit of [Keep a Changelog](https://keepachangelog.com
 - Added a controlled PWA update toast with a Reload action for new deployments.
 
 ### Changed
+- Tightened the mobile homepage controls and project cards so account, search, filter, and New Project feel less crowded.
 - Increased homepage section separation between Projects and the Priority Dashboard with added whitespace and a subtle divider.
 - Moved New Project into the Projects toolbar so the account/workspace menu reads as a separate utility.
 - Changed homepage project ordering to keep pinned projects first, then sort the rest by recent project activity.

@@ -930,7 +930,7 @@ export default function App() {
                 )}
               </div>
             </div>
-            <div className="project-toolbar" aria-label="Project filters">
+            <div className={`project-toolbar ${projectFilterActive ? 'has-filter' : ''}`} aria-label="Project filters">
               <div className="project-search-wrap">
                 <input
                   className="project-search"
@@ -951,7 +951,10 @@ export default function App() {
                   <option key={option.value} value={option.value}>{option.label}</option>
                 ))}
               </select>
-              <button className="add-btn project-new-btn" type="button" onClick={openNewProject}>+ New Project</button>
+              <button className="add-btn project-new-btn" type="button" onClick={openNewProject}>
+                <span className="project-new-full">+ New Project</span>
+                <span className="project-new-short">+ New</span>
+              </button>
               <div className="project-filter-count" aria-live="polite">
                 {filteredProjects.length} of {projects.length}
               </div>
