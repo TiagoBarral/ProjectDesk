@@ -923,7 +923,6 @@ export default function App() {
                 <p>Manage tasks, notes, and files per project</p>
               </div>
               <div className="home-header-actions">
-                <button className="add-btn" type="button" onClick={openNewProject}>+ New Project</button>
                 {isSupabaseConfigured ? (
                   <AccountMenu user={user} workspace={workspace} onOpenData={openDataTools} onSignOut={() => setSyncState('idle')} />
                 ) : (
@@ -952,6 +951,7 @@ export default function App() {
                   <option key={option.value} value={option.value}>{option.label}</option>
                 ))}
               </select>
+              <button className="add-btn project-new-btn" type="button" onClick={openNewProject}>+ New Project</button>
               <div className="project-filter-count" aria-live="polite">
                 {filteredProjects.length} of {projects.length}
               </div>

@@ -32,6 +32,8 @@ This project follows the spirit of [Keep a Changelog](https://keepachangelog.com
 - Added a controlled PWA update toast with a Reload action for new deployments.
 
 ### Changed
+- Increased homepage section separation between Projects and the Priority Dashboard with added whitespace and a subtle divider.
+- Moved New Project into the Projects toolbar so the account/workspace menu reads as a separate utility.
 - Changed homepage project ordering to keep pinned projects first, then sort the rest by recent project activity.
 - Scoped signed-in local cache and Supabase row payloads to the active workspace when workspace support is installed.
 - Changed uploaded file deletion to remove the physical Supabase Storage object after the metadata soft-delete sync succeeds.

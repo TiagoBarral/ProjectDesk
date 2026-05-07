@@ -52,12 +52,13 @@ button{appearance:none;}
 .home-header-actions{display:flex;align-items:center;gap:10px;justify-content:flex-end;flex-wrap:wrap;}
 .home-header h1{font-size:30px;font-weight:700;letter-spacing:-.5px;background:linear-gradient(135deg,#1d1d1f 30%,var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;color:transparent;}
 .home-header p{color:var(--text2);font-size:15px;margin-top:5px;}
-.project-toolbar{display:grid;grid-template-columns:minmax(220px,1fr) 140px auto auto;align-items:center;gap:10px;margin:-18px 0 18px;}
+.project-toolbar{display:grid;grid-template-columns:minmax(220px,1fr) 140px auto auto auto;align-items:center;gap:10px;margin:-18px 0 18px;}
 .project-search,.project-status-filter{width:100%;min-height:38px;border:1px solid var(--border);border-radius:999px;background:var(--surface);color:var(--text);font-family:inherit;font-size:13px;outline:none;box-shadow:0 1px 4px rgba(0,0,0,.04);transition:border-color .15s,box-shadow .15s;}
 .project-search{padding:8px 15px;}
 .project-status-filter{padding:8px 13px;cursor:pointer;}
 .project-search:focus,.project-status-filter:focus{border-color:#93b7e8;box-shadow:0 0 0 3px rgba(50,127,209,.12);}
 .project-filter-count{font-size:12px;font-weight:700;color:var(--text2);white-space:nowrap;}
+.project-new-btn{white-space:nowrap;min-height:38px;}
 .project-clear-filter{border:1px solid var(--border);background:var(--surface2);border-radius:999px;padding:7px 12px;color:var(--text2);font-size:12px;font-weight:700;cursor:pointer;min-height:34px;}
 .project-clear-filter:hover{border-color:var(--border2);color:#327fd1;background:#f8fbff;}
 .project-empty{border:1px dashed var(--border);background:rgba(248,250,252,.78);border-radius:18px;padding:28px;text-align:center;color:var(--text2);font-size:14px;font-weight:600;}
@@ -241,7 +242,8 @@ button{appearance:none;}
 .color-swatch{width:34px;height:34px;border-radius:50%;border:2px solid var(--surface);box-shadow:0 0 0 1px var(--border2);cursor:pointer;}
 .color-swatch.active{box-shadow:0 0 0 3px rgba(94,92,230,.28);}
 .color-input{width:42px!important;height:38px!important;min-height:38px!important;padding:2px!important;border-radius:12px!important;cursor:pointer;}
-.dash-section{margin-bottom:48px;}
+.projects-section{margin-bottom:56px;}
+.dash-section{margin-bottom:48px;padding-top:18px;border-top:1px solid rgba(148,163,184,.22);}
 .dash-title{font-size:30px;font-weight:700;letter-spacing:-.5px;margin-bottom:3px;}
 .dash-sub{font-size:15px;color:var(--text2);margin-bottom:22px;}
 .sum-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:22px;}
@@ -318,14 +320,16 @@ button{appearance:none;}
 .not-found-card p{font-size:14px;color:var(--text2);margin-bottom:20px;}
 @media(max-width:800px){
   .home{padding:24px 16px 32px;max-width:100%;}
-  .projects-section{order:1;margin-bottom:28px;}
-  .dash-section{order:2;margin-bottom:34px;}
+  .projects-section{order:1;margin-bottom:36px;}
+  .dash-section{order:2;margin-bottom:34px;padding-top:14px;}
   .home-header{margin-bottom:18px;flex-wrap:wrap;}
-  .home-header-actions{width:100%;justify-content:space-between;}
+  .home-header-actions{justify-content:flex-start;}
   .project-toolbar{grid-template-columns:minmax(0,1fr) 112px;gap:8px;margin:-6px 0 12px;}
+  .project-search-wrap{grid-column:1 / -1;}
   .project-search,.project-status-filter{min-height:40px;font-size:12px;border-radius:14px;}
   .project-search{padding:8px 12px;}
   .project-status-filter{padding:8px 10px;}
+  .project-new-btn{grid-column:2;min-height:40px;width:100%;padding:8px 10px;font-size:12px;}
   .project-filter-count{font-size:11px;padding-left:2px;}
   .project-clear-filter{justify-self:end;min-height:32px;padding:6px 11px;font-size:11px;}
   .account-menu{min-width:0;}
@@ -446,7 +450,8 @@ button{appearance:none;}
   .home{padding:20px 12px 28px;}
   .home-header{margin-bottom:14px;}
   .home-header h1{font-size:26px;}
-  .dash-section{margin-bottom:28px;}
+  .projects-section{margin-bottom:32px;}
+  .dash-section{margin-bottom:28px;padding-top:12px;}
   .dash-title{font-size:26px;}
   .dash-sub{font-size:14px;margin-bottom:14px;}
   .sum-grid{grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;}
