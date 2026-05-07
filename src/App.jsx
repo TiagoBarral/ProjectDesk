@@ -19,6 +19,13 @@ import { ensureUserWorkspace } from './lib/workspaces.js';
 const uid = () => (window.crypto?.randomUUID ? window.crypto.randomUUID() : Math.random().toString(36).slice(2, 9));
 const nowIso = () => new Date().toISOString();
 const priorityFromImportance = (importance) => (importance === 'high' ? 'high' : importance === 'low' ? 'low' : 'mid');
+const PROJECT_STATUS_FILTERS = [
+  { value: 'all', label: 'All' },
+  { value: 'active', label: 'Active' },
+  { value: 'planning', label: 'Planning' },
+  { value: 'paused', label: 'Paused' },
+  { value: 'done', label: 'Done' },
+];
 
 function routeFromLocation() {
   return parseRoutePath(window.location.pathname);
@@ -45,7 +52,51 @@ function visibleProjects(projects = []) {
 function sortProjects(projects = []) {
   return [...projects].sort((left, right) => {
     if (Boolean(left.pinned) !== Boolean(right.pinned)) return left.pinned ? -1 : 1;
-    return 0;
+    return projectActivityTime(right) - projectActivityTime(left);
+  });
+}
+
+function projectActivityTime(project) {
+  const dates = [
+    project.updated_at,
+    ...(project.tasks || []).filter((task) => !task.deleted_at).flatMap((task) => [
+      task.updated_at,
+      ...(task.subtasks || []).filter((subtask) => !subtask.deleted_at).map((subtask) => subtask.updated_at),
+    ]),
+    ...(project.files || []).filter((file) => !file.deleted_at).map((file) => file.updated_at),
+  ];
+
+  return dates.reduce((latest, value) => {
+    const time = Date.parse(value || '');
+    return Number.isNaN(time) ? latest : Math.max(latest, time);
+  }, 0);
+}
+
+function projectSearchText(project) {
+  return [
+    project.name,
+    project.status,
+    project.notes,
+    ...(project.tasks || []).flatMap((task) => [
+      task.title,
+      task.text,
+      task.description,
+      ...(task.subtasks || []).map((subtask) => subtask.text),
+    ]),
+    ...(project.files || []).filter((file) => !file.deleted_at).flatMap((file) => [
+      file.name,
+      file.path,
+      file.public_url,
+    ]),
+  ].filter(Boolean).join(' ').toLowerCase();
+}
+
+function filterProjects(projects, query, statusFilter) {
+  const search = query.trim().toLowerCase();
+  return projects.filter((project) => {
+    const matchesStatus = statusFilter === 'all' || project.status === statusFilter;
+    const matchesSearch = !search || projectSearchText(project).includes(search);
+    return matchesStatus && matchesSearch;
   });
 }
 
@@ -180,6 +231,8 @@ export default function App() {
   const [activeTab, setActiveTab] = useState(initialRoute.activeTab);
   const [pendingRoute, setPendingRoute] = useState(null);
   const [modal, setModal] = useState(null);
+  const [projectQuery, setProjectQuery] = useState('');
+  const [projectStatusFilter, setProjectStatusFilter] = useState('all');
   const dataRef = useRef(defaultData);
   const isRefreshingRef = useRef(false);
   const { updateAvailable, reloadForUpdate } = usePwaUpdate();
@@ -398,6 +451,11 @@ export default function App() {
   }, [refreshFromRemote]);
 
   const projects = useMemo(() => sortProjects(visibleProjects(data.projects)), [data.projects]);
+  const filteredProjects = useMemo(
+    () => filterProjects(projects, projectQuery, projectStatusFilter),
+    [projects, projectQuery, projectStatusFilter],
+  );
+  const projectFilterActive = Boolean(projectQuery.trim()) || projectStatusFilter !== 'all';
   const activeProject = useMemo(
     () => resolveProjectByRouteParam(projects, routeProjectParam),
     [projects, routeProjectParam],
@@ -873,11 +931,53 @@ export default function App() {
                 )}
               </div>
             </div>
+            <div className="project-toolbar" aria-label="Project filters">
+              <div className="project-search-wrap">
+                <input
+                  className="project-search"
+                  type="search"
+                  value={projectQuery}
+                  onChange={(event) => setProjectQuery(event.target.value)}
+                  placeholder="Search projects, tasks, notes, files"
+                  aria-label="Search projects"
+                />
+              </div>
+              <select
+                className="project-status-filter"
+                value={projectStatusFilter}
+                onChange={(event) => setProjectStatusFilter(event.target.value)}
+                aria-label="Filter projects by status"
+              >
+                {PROJECT_STATUS_FILTERS.map((option) => (
+                  <option key={option.value} value={option.value}>{option.label}</option>
+                ))}
+              </select>
+              <div className="project-filter-count" aria-live="polite">
+                {filteredProjects.length} of {projects.length}
+              </div>
+              {projectFilterActive && (
+                <button
+                  className="project-clear-filter"
+                  type="button"
+                  onClick={() => {
+                    setProjectQuery('');
+                    setProjectStatusFilter('all');
+                  }}
+                >
+                  Clear
+                </button>
+              )}
+            </div>
             <div className="card-grid">
-              {projects.map((project) => (
+              {filteredProjects.map((project) => (
                 <ProjectCard key={project.id} project={project} onOpen={() => openProject(project.id)} />
               ))}
             </div>
+            {!filteredProjects.length && (
+              <div className="project-empty">
+                No projects match this view.
+              </div>
+            )}
           </div>
           <PriorityDashboard
             projects={projects}

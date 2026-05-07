@@ -37,6 +37,7 @@ Supabase sync is enabled for the current authenticated phase.
 - [x] Add create/delete project flows.
 - [x] Add safer delete confirmations for tasks, subtasks, and files.
 - [x] Add project ordering or pinning.
+- [x] Add homepage project search, status filtering, and recent activity ordering for larger project lists.
 - [ ] Add due dates or scheduled dates for tasks.
 - [ ] Add search across projects, tasks, notes, and files.
 - [ ] Add tags or labels for tasks.

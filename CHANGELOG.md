@@ -7,6 +7,8 @@ This project follows the spirit of [Keep a Changelog](https://keepachangelog.com
 ## [Unreleased]
 
 ### Added
+- Added homepage project search across project names, tasks, notes, and file metadata.
+- Added a homepage project status filter for narrowing large project lists.
 - Added profile and personal workspace bootstrap for signed-in users.
 - Added a workspace migration SQL path for pre-workspace ProjectDesk data.
 - Added a private bucket hardening SQL file for the `project-files` Supabase Storage bucket.
@@ -30,6 +32,7 @@ This project follows the spirit of [Keep a Changelog](https://keepachangelog.com
 - Added a controlled PWA update toast with a Reload action for new deployments.
 
 ### Changed
+- Changed homepage project ordering to keep pinned projects first, then sort the rest by recent project activity.
 - Scoped signed-in local cache and Supabase row payloads to the active workspace when workspace support is installed.
 - Changed uploaded file deletion to remove the physical Supabase Storage object after the metadata soft-delete sync succeeds.
 - Moved the Projects section above the Priority Dashboard on desktop and mobile.
