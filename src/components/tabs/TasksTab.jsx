@@ -19,6 +19,35 @@ export default function TasksTab({
 }) {
   const openTasks = project.tasks.filter((task) => !task.done);
   const doneTasks = project.tasks.filter((task) => task.done);
+  const seenTaskIdsRef = useRef(new Set(project.tasks.map((task) => task.id)));
+  const previousProjectIdRef = useRef(project.id);
+  const [enteringTaskIds, setEnteringTaskIds] = useState([]);
+
+  useEffect(() => {
+    const currentTaskIds = new Set(project.tasks.map((task) => task.id));
+
+    if (previousProjectIdRef.current !== project.id) {
+      previousProjectIdRef.current = project.id;
+      seenTaskIdsRef.current = currentTaskIds;
+      setEnteringTaskIds([]);
+      return undefined;
+    }
+
+    const newTaskIds = project.tasks
+      .map((task) => task.id)
+      .filter((taskId) => !seenTaskIdsRef.current.has(taskId));
+
+    seenTaskIdsRef.current = currentTaskIds;
+
+    if (!newTaskIds.length) return undefined;
+
+    setEnteringTaskIds(newTaskIds);
+    const timer = window.setTimeout(() => {
+      setEnteringTaskIds((ids) => ids.filter((taskId) => !newTaskIds.includes(taskId)));
+    }, 520);
+
+    return () => window.clearTimeout(timer);
+  }, [project.id, project.tasks]);
 
   return (
     <>
@@ -42,6 +71,7 @@ export default function TasksTab({
           key={task.id}
           project={project}
           task={task}
+          isEntering={enteringTaskIds.includes(task.id)}
           onToggleTask={onToggleTask}
           onToggleTaskExpanded={onToggleTaskExpanded}
           onDeleteTask={onDeleteTask}
@@ -59,6 +89,7 @@ export default function TasksTab({
           key={task.id}
           project={project}
           task={task}
+          isEntering={enteringTaskIds.includes(task.id)}
           onToggleTask={onToggleTask}
           onToggleTaskExpanded={onToggleTaskExpanded}
           onDeleteTask={onDeleteTask}
@@ -77,6 +108,7 @@ export default function TasksTab({
 function TaskCard({
   project,
   task,
+  isEntering,
   onToggleTask,
   onToggleTaskExpanded,
   onDeleteTask,
@@ -91,7 +123,9 @@ function TaskCard({
   const [editingSubtask, setEditingSubtask] = useState(null);
   const [editingText, setEditingText] = useState('');
   const [menuOpen, setMenuOpen] = useState(false);
+  const [completionPulse, setCompletionPulse] = useState('');
   const menuRef = useRef(null);
+  const previousDoneRef = useRef(task.done);
   const doneSubtasks = task.subtasks.filter((subtask) => subtask.done).length;
 
   const submitSubtask = () => {
@@ -125,8 +159,25 @@ function TaskCard({
     return () => document.removeEventListener('pointerdown', closeOnOutsideTap, true);
   }, [menuOpen]);
 
+  useEffect(() => {
+    if (previousDoneRef.current === task.done) return undefined;
+
+    previousDoneRef.current = task.done;
+    setCompletionPulse(task.done ? 'completed' : 'reopened');
+    const timer = window.setTimeout(() => setCompletionPulse(''), 650);
+    return () => window.clearTimeout(timer);
+  }, [task.done]);
+
   return (
-    <div className="task-card clickable" onClick={openTaskDetail}>
+    <div
+      className={[
+        'task-card clickable',
+        task.done ? 'is-done' : '',
+        isEntering ? 'is-entering' : '',
+        completionPulse ? `is-${completionPulse}` : '',
+      ].filter(Boolean).join(' ')}
+      onClick={openTaskDetail}
+    >
       <div className="task-row">
         <button className={`task-check ${task.done ? 'done' : ''}`} type="button" aria-label="Toggle task" onClick={(event) => { event.stopPropagation(); onToggleTask(task.id); }} />
         <span className={`pdot ${priorityClass(priorityFromImportance(task.importance || 'medium'))}`} />

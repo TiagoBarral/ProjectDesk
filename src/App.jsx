@@ -908,6 +908,10 @@ export default function App() {
     return <AuthScreen authReady={authReady} isSupabaseConfigured={isSupabaseConfigured} />;
   }
 
+  if (!workspaceReady || !hasHydrated || isInitializing) {
+    return <AppLoading isWorkspaceLoading={!workspaceReady} isRemoteLoading={Boolean(syncUserId)} />;
+  }
+
   return (
     <>
       {view === 'notFound' ? (
@@ -1026,10 +1030,33 @@ export default function App() {
   );
 }
 
+function AppLoading({ isWorkspaceLoading, isRemoteLoading }) {
+  const title = isWorkspaceLoading ? 'Preparing workspace...' : 'Opening workspace...';
+  const copy = isWorkspaceLoading
+    ? 'ProjectDesk is setting up your personal workspace.'
+    : isRemoteLoading
+      ? 'ProjectDesk is loading your latest synced projects.'
+      : 'ProjectDesk is loading your local workspace.';
+
+  return (
+    <main className="app-loading" aria-busy="true" aria-live="polite">
+      <section className="app-loading-card">
+        <div className="loading-spinner" aria-hidden="true" />
+        <div>
+          <div className="loading-kicker">ProjectDesk</div>
+          <h1>{title}</h1>
+          <p>{copy}</p>
+        </div>
+      </section>
+    </main>
+  );
+}
+
 function RouteLoading() {
   return (
     <main className="not-found">
       <div className="not-found-card">
+        <div className="loading-spinner route-spinner" aria-hidden="true" />
         <div className="not-found-kicker">Loading route</div>
         <h1>Opening project...</h1>
         <p>ProjectDesk is checking the saved project route.</p>

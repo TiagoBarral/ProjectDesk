@@ -8,12 +8,15 @@ export default function FilesTab({ project, userId, workspaceId, onAddFiles, onD
   const inputRef = useRef(null);
   const [dragOver, setDragOver] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [uploadCount, setUploadCount] = useState(0);
   const [uploadError, setUploadError] = useState('');
   const activeFiles = project.files.filter((file) => !file.deleted_at);
+  const uploadLabel = uploadCount > 1 ? `Uploading ${uploadCount} files...` : 'Uploading file...';
 
   const handleFiles = async (files) => {
     if (!files.length) return;
     setUploading(true);
+    setUploadCount(files.length);
     setUploadError('');
 
     try {
@@ -26,6 +29,7 @@ export default function FilesTab({ project, userId, workspaceId, onAddFiles, onD
       setUploadError(error.message || 'File upload failed.');
     } finally {
       setUploading(false);
+      setUploadCount(0);
     }
   };
 
@@ -35,7 +39,7 @@ export default function FilesTab({ project, userId, workspaceId, onAddFiles, onD
         <div className="section-label">Files</div>
         <div className="btn-row">
           <button className="ghost-btn" type="button" onClick={() => openModal(({ onClose }) => <LinkFileModal onClose={onClose} onSubmit={onAddFiles} />)}>🔗 Link File</button>
-          <button className="add-btn" type="button" disabled={uploading} onClick={() => inputRef.current?.click()}>{uploading ? 'Uploading...' : '⬆ Upload'}</button>
+          <button className={`add-btn ${uploading ? 'is-loading' : ''}`} type="button" disabled={uploading} onClick={() => inputRef.current?.click()}>{uploading ? 'Uploading...' : '⬆ Upload'}</button>
         </div>
       </div>
       <input
@@ -49,8 +53,11 @@ export default function FilesTab({ project, userId, workspaceId, onAddFiles, onD
         }}
       />
       <div
-        className={`drop-zone ${dragOver ? 'drag-over' : ''}`}
-        onClick={() => inputRef.current?.click()}
+        className={`drop-zone ${dragOver ? 'drag-over' : ''} ${uploading ? 'is-uploading' : ''}`}
+        aria-busy={uploading}
+        onClick={() => {
+          if (!uploading) inputRef.current?.click();
+        }}
         onDragOver={(event) => {
           event.preventDefault();
           setDragOver(true);
@@ -62,9 +69,9 @@ export default function FilesTab({ project, userId, workspaceId, onAddFiles, onD
           handleFiles(Array.from(event.dataTransfer.files || []));
         }}
       >
-        <div className="drop-icon">📂</div>
-        <strong>{uploading ? 'Uploading files...' : 'Drag & drop files here'}</strong>
-        <p>Or click to browse · Files sync with Supabase Storage</p>
+        <div className="drop-icon">{uploading ? <span className="loading-spinner" aria-hidden="true" /> : '📂'}</div>
+        <strong>{uploading ? uploadLabel : 'Drag & drop files here'}</strong>
+        <p>{uploading ? 'Keep this tab open while ProjectDesk saves the upload.' : 'Or click to browse · Files sync with Supabase Storage'}</p>
       </div>
       <div className="warn-note">💡 Uploaded files are stored in Supabase Storage so they can be opened from desktop or mobile.</div>
       {uploadError && <div className="warn-note danger-note">{uploadError}</div>}
@@ -91,14 +98,17 @@ export default function FilesTab({ project, userId, workspaceId, onAddFiles, onD
 function FileCard({ file, onDelete, onEdit }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [openError, setOpenError] = useState('');
+  const [isOpening, setIsOpening] = useState(false);
   const menuRef = useRef(null);
   const fileUrl = file.public_url || file.path;
   const meta = file.kind === 'link' ? file.path : fmtSize(file.size);
   const openFile = async () => {
     setOpenError('');
+    setIsOpening(true);
     if (file.kind === 'link') {
       const target = /^https?:\/\//i.test(file.path) || /^file:/i.test(file.path) ? file.path : `file:///${file.path.replace(/\\/g, '/')}`;
       window.open(target, '_blank', 'noopener,noreferrer');
+      setIsOpening(false);
       return;
     }
     try {
@@ -106,6 +116,8 @@ function FileCard({ file, onDelete, onEdit }) {
       if (url) window.open(url, '_blank', 'noopener,noreferrer');
     } catch (error) {
       setOpenError(error.message || 'Could not open file.');
+    } finally {
+      setIsOpening(false);
     }
   };
 
@@ -122,7 +134,7 @@ function FileCard({ file, onDelete, onEdit }) {
 
   return (
     <div
-      className="file-card"
+      className={`file-card ${isOpening ? 'is-opening' : ''}`}
       role="button"
       tabIndex={0}
       title={file.kind === 'link' ? file.path : fileUrl || file.name}
@@ -152,7 +164,7 @@ function FileCard({ file, onDelete, onEdit }) {
           </>
         )}
       </div>
-      <div className="file-icon">{fileIcon(file.mimeType, file.name)}</div>
+      <div className="file-icon">{isOpening ? <span className="loading-spinner mini-spinner" aria-hidden="true" /> : fileIcon(file.mimeType, file.name)}</div>
       <div className="file-name">{file.name.length > 20 ? `${file.name.slice(0, 18)}...` : file.name}</div>
       <span className={`file-badge ${file.kind === 'link' ? 'file-badge-link' : 'file-badge-up'}`}>{file.kind === 'link' ? 'LINK' : 'UPLOAD'}</span>
       <div className="file-meta">{meta?.length > 28 ? `...${meta.slice(-26)}` : meta}</div>

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import ImportanceBadge from './ImportanceBadge.jsx';
 import TaskDetailModal from './TaskDetailModal.jsx';
 
@@ -148,16 +148,12 @@ export default function PriorityDashboard({ projects, filters, onFiltersChange, 
           <>
             <div className="ptask-head"><span /><span>Task</span><span>Project</span><span>Priority</span><span>Status</span></div>
             {pagedTasks.map((task) => (
-              <div key={`${task.projectId}-${task.id}`} className={`ptask-row clickable ${task.importance === 'high' ? 'imp-high' : task.importance === 'low' ? 'imp-low' : ''}`} onClick={() => openTaskDetails(task)}>
-                <button className={`ptask-check ${task.done ? 'done' : ''}`} type="button" aria-label="Toggle task" onClick={(event) => { event.stopPropagation(); onToggleTask(task.projectId, task.id); }} />
-                <button className={`ptask-title ${task.done ? 'done' : ''}`} type="button" title={task.title} onClick={(event) => { event.stopPropagation(); openTaskDetails(task); }}>{task.title}</button>
-                <span className="proj-chip">{task.projectName}</span>
-                <ImportanceBadge importance={task.importance} />
-                <span className={`ptask-status ${task.done ? '' : 'active'}`}>{task.done ? 'Done' : 'Active'}</span>
-                <span className="mobile-task-dots" aria-label={`${task.importance} priority`}>
-                  <span className={`mobile-dot mobile-dot-priority ${task.importance}`} title={`${task.importance} priority`} />
-                </span>
-              </div>
+              <PriorityTaskRow
+                key={`${task.projectId}-${task.id}`}
+                task={task}
+                onOpenTask={openTaskDetails}
+                onToggleTask={onToggleTask}
+              />
             ))}
           </>
         )}
@@ -178,6 +174,42 @@ export default function PriorityDashboard({ projects, filters, onFiltersChange, 
         </div>
       )}
     </section>
+  );
+}
+
+function PriorityTaskRow({ task, onOpenTask, onToggleTask }) {
+  const [completionPulse, setCompletionPulse] = useState('');
+  const previousDoneRef = useRef(task.done);
+
+  useEffect(() => {
+    if (previousDoneRef.current === task.done) return undefined;
+
+    previousDoneRef.current = task.done;
+    setCompletionPulse(task.done ? 'completed' : 'reopened');
+    const timer = window.setTimeout(() => setCompletionPulse(''), 650);
+    return () => window.clearTimeout(timer);
+  }, [previousDoneRef, task.done]);
+
+  return (
+    <div
+      className={[
+        'ptask-row clickable',
+        task.importance === 'high' ? 'imp-high' : '',
+        task.importance === 'low' ? 'imp-low' : '',
+        task.done ? 'is-done' : '',
+        completionPulse ? `is-${completionPulse}` : '',
+      ].filter(Boolean).join(' ')}
+      onClick={() => onOpenTask(task)}
+    >
+      <button className={`ptask-check ${task.done ? 'done' : ''}`} type="button" aria-label="Toggle task" onClick={(event) => { event.stopPropagation(); onToggleTask(task.projectId, task.id); }} />
+      <button className={`ptask-title ${task.done ? 'done' : ''}`} type="button" title={task.title} onClick={(event) => { event.stopPropagation(); onOpenTask(task); }}>{task.title}</button>
+      <span className="proj-chip">{task.projectName}</span>
+      <ImportanceBadge importance={task.importance} />
+      <span className={`ptask-status ${task.done ? '' : 'active'}`}>{task.done ? 'Done' : 'Active'}</span>
+      <span className="mobile-task-dots" aria-label={`${task.importance} priority`}>
+        <span className={`mobile-dot mobile-dot-priority ${task.importance}`} title={`${task.importance} priority`} />
+      </span>
+    </div>
   );
 }
 

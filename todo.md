@@ -83,7 +83,7 @@ Supabase sync is enabled for the current authenticated phase.
 - [ ] Test install flow on Android from Chrome.
 - [ ] Test offline launch after installing the PWA.
 - [ ] Verify all edit modals are comfortable on small Android screens.
-- [ ] Add app screenshots/icons for a more polished install prompt.
+- [ ] Add app screenshots for a more polished install prompt.
 - [ ] Decide where to deploy over HTTPS so Android install works outside localhost.
 
 ## Product Roadmap
@@ -107,8 +107,8 @@ Goal: make the app feel like an installable mobile app.
 
 - [ ] Add or verify `manifest.json` / `manifest.webmanifest`.
 - [ ] Add or verify the service worker.
-- [ ] Configure app name.
-- [ ] Configure icons.
+- [x] Configure app name.
+- [x] Configure icons.
 - [ ] Configure theme color.
 - [ ] Enable and test Add to Home Screen.
 - [ ] Test install on Android.
@@ -136,8 +136,8 @@ Goal: prevent future data bugs.
 Goal: make the app enjoyable for daily use.
 
 - [ ] Clean priority visuals and reduce noise.
-- [ ] Add subtle animations for task completion and task creation.
-- [ ] Improve loading states.
+- [x] Add subtle animations for task completion and task creation.
+- [x] Improve loading states.
 - [ ] Add empty states for no tasks and no projects.
 - [ ] Improve spacing and typography.
 

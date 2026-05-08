@@ -45,7 +45,10 @@ export default function AuthScreen({ authReady, isSupabaseConfigured }) {
             Supabase is not configured. Add `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` to `.env`.
           </div>
         ) : !authReady ? (
-          <div className="auth-message">Checking saved session...</div>
+          <div className="auth-message loading-message">
+            <span className="loading-spinner mini-spinner" aria-hidden="true" />
+            Checking saved session...
+          </div>
         ) : (
           <form className="auth-form" onSubmit={submit}>
             <label>
@@ -71,7 +74,7 @@ export default function AuthScreen({ authReady, isSupabaseConfigured }) {
             </label>
             {message && <div className="auth-message">{message}</div>}
             {error && <div className="auth-message auth-error">{error}</div>}
-            <button className="mbtn mbtn-pri" type="submit" disabled={isSubmitting}>
+            <button className={`mbtn mbtn-pri ${isSubmitting ? 'is-loading' : ''}`} type="submit" disabled={isSubmitting}>
               {isSubmitting ? 'Working...' : isSignUp ? 'Create Account' : 'Sign In'}
             </button>
           </form>
@@ -153,7 +156,7 @@ export function AccountMenu({ user, workspace, onOpenData, onSignOut }) {
               Data / Backup
             </button>
             {user && (
-              <button type="button" role="menuitem" onClick={handleSignOut} disabled={isSigningOut}>
+              <button className={isSigningOut ? 'is-loading' : ''} type="button" role="menuitem" onClick={handleSignOut} disabled={isSigningOut}>
                 {isSigningOut ? 'Signing out...' : 'Sign out'}
               </button>
             )}

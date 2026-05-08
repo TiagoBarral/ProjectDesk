@@ -7,6 +7,7 @@ This project follows the spirit of [Keep a Changelog](https://keepachangelog.com
 ## [Unreleased]
 
 ### Added
+- Added ProjectDesk PNG app icons for favicon, Apple touch icon, standard PWA icons, and maskable Android install icons.
 - Added homepage project search across project names, tasks, notes, and file metadata.
 - Added a homepage project status filter for narrowing large project lists.
 - Added profile and personal workspace bootstrap for signed-in users.
@@ -32,6 +33,8 @@ This project follows the spirit of [Keep a Changelog](https://keepachangelog.com
 - Added a controlled PWA update toast with a Reload action for new deployments.
 
 ### Changed
+- Renamed the browser/PWA title and manifest app name from Project Ecosystem to ProjectDesk.
+- Added subtle task creation and completion motion with reduced-motion support, plus clearer workspace, route, auth, file upload, and file opening loading states.
 - Tightened the mobile homepage controls and project cards so account, search, filter, and New Project feel less crowded.
 - Increased homepage section separation between Projects and the Priority Dashboard with added whitespace and a subtle divider.
 - Moved New Project into the Projects toolbar so the account/workspace menu reads as a separate utility.
