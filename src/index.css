@@ -332,7 +332,8 @@ button{appearance:none;}
   .account-trigger{width:38px;height:38px;min-height:38px;max-width:38px;padding:0;justify-content:center;border-radius:50%;font-size:0;background:#fff;}
   .account-trigger span:last-child{display:none;}
   .account-menu-backdrop{display:block;position:fixed;inset:0;z-index:139;background:rgba(0,0,0,.001);border:0;padding:0;cursor:default;touch-action:manipulation;}
-  .account-panel{position:fixed;left:18px;right:18px;top:50%;bottom:auto;z-index:140;min-width:0;width:auto;transform:translateY(-50%);padding:8px;border-radius:16px;box-shadow:0 18px 48px rgba(15,23,42,.22);}
+  .account-panel{position:fixed;right:16px;top:70px;z-index:140;min-width:0;width:min(238px,calc(100vw - 32px));transform:none;padding:8px;border-radius:16px;box-shadow:0 18px 48px rgba(15,23,42,.22);}
+  .account-panel::before{content:'';position:absolute;right:15px;top:-7px;width:14px;height:14px;background:var(--surface);border-left:1px solid var(--border);border-top:1px solid var(--border);transform:rotate(45deg);}
   .account-panel button{min-height:44px;font-size:14px;padding:11px 12px;border-radius:12px;}
   .account-workspace{padding:11px 12px 12px;}
   .account-workspace strong{max-width:none;font-size:14px;}
@@ -468,6 +469,7 @@ button{appearance:none;}
 @media(max-width:460px){
   .home{padding:20px 12px 28px;}
   .home-header-actions{right:12px;top:20px;}
+  .account-panel{right:12px;top:64px;width:min(232px,calc(100vw - 24px));}
   .home-header{margin-bottom:14px;}
   .home-header h1{font-size:26px;}
   .projects-section{margin-bottom:32px;}
