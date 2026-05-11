@@ -7,7 +7,7 @@ This project follows the spirit of [Keep a Changelog](https://keepachangelog.com
 ## [Unreleased]
 
 ### Added
-- Added a server-side AI task title improvement action using the Anthropic Messages API, with input/output limits, timeout handling, rate limiting, and loading/error UI in the task modal.
+- Added a server-side AI task improvement action that suggests both a task title and description using the Anthropic Messages API, with input/output limits, timeout handling, rate limiting, and loading/error UI in the task modal.
 - Added ProjectDesk PNG app icons for favicon, Apple touch icon, standard PWA icons, and maskable Android install icons.
 - Added homepage project search across project names, tasks, notes, and file metadata.
 - Added a homepage project status filter for narrowing large project lists.
@@ -59,6 +59,7 @@ This project follows the spirit of [Keep a Changelog](https://keepachangelog.com
 - Reduced Priority Dashboard task title weight for calmer scanning.
 
 ### Fixed
+- Added local Vite middleware for `/api/improve-task` so the AI Improve button can be tested with `npm run dev`.
 - Changed the mobile account/workspace menu to a compact gear button with a viewport-safe anchored popover.
 - Saved authenticated Supabase rows parent-first so RLS policies do not reject child task, subtask, or file upserts.
 - Added document-level outside-tap handling so mobile overflow menus close reliably when tapping away.

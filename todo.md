@@ -49,7 +49,7 @@ Supabase sync is enabled for the current authenticated phase.
   - [x] Add "Improve" button next to task input.
   - [x] Create Vercel API route `/api/improve-task`.
   - [x] Use Anthropic Messages API to improve task text.
-  - [x] Keep output short, max about 160 chars.
+  - [x] Keep title output short and description output bounded.
   - [x] Do not expose API key; use server-side env var `ANTHROPIC_API_KEY`.
   - [x] Add loading and error states in UI.
   - [x] Do not auto-save; user confirms before adding task.
@@ -69,6 +69,7 @@ Supabase sync is enabled for the current authenticated phase.
   - [ ] Set low budget alerts, about $2-$5.
   - [ ] Restrict to one model.
   - [ ] Test the deployed `/api/improve-task` route from the app.
+  - [ ] Confirm one click fills both title and description cleanly.
 
   Notes:
   - Code implementation is in place; production use needs the Vercel/Anthropic environment setup above.

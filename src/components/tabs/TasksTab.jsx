@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import ImportanceBadge from '../ImportanceBadge.jsx';
 import TaskDetailModal from '../TaskDetailModal.jsx';
 import { priorityClass, priorityFromImportance } from '../helpers.js';
-import { improveTaskTitle } from '../../lib/ai.js';
+import { improveTask } from '../../lib/ai.js';
 
 export default function TasksTab({
   project,
@@ -301,8 +301,9 @@ function TaskModal({ title, actionLabel, task, onClose, onSubmit }) {
     setIsImproving(true);
 
     try {
-      const improvedTitle = await improveTaskTitle(taskTitle);
-      setTaskTitle(improvedTitle);
+      const suggestion = await improveTask(taskTitle, description);
+      setTaskTitle(suggestion.title);
+      setDescription(suggestion.description);
     } catch (error) {
       setImproveError(error.message || 'AI improvement failed.');
     } finally {
@@ -329,11 +330,22 @@ function TaskModal({ title, actionLabel, task, onClose, onSubmit }) {
             disabled={isImproving || !taskTitle.trim()}
             onClick={improveTitle}
           >
-            Improve
+            <span className="ai-improve-mark" aria-hidden="true" />
+            {isImproving ? (
+              <span>Improving...</span>
+            ) : (
+              <>
+                <span className="ai-label-desktop">Improve with AI</span>
+                <span className="ai-label-mobile">AI Improve</span>
+              </>
+            )}
           </button>
         </div>
         {improveError && <div className="ai-error">{improveError}</div>}
-        <small>AI suggests a cleaner title only. You still choose whether to save it.</small>
+        <small className="ai-help">
+          <span aria-hidden="true">✦</span>
+          AI suggests a cleaner title and description. You still choose whether to save it.
+        </small>
       </div>
       <div className="field">
         <label>Description</label>

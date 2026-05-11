@@ -18,6 +18,7 @@ button{appearance:none;}
 @keyframes task-enter{from{opacity:0;transform:translateY(8px) scale(.99);box-shadow:0 1px 4px rgba(0,0,0,.04);}to{opacity:1;transform:translateY(0) scale(1);}}
 @keyframes completion-pulse{0%{background:#fff;border-color:var(--border);}38%{background:rgba(52,199,89,.1);border-color:rgba(52,199,89,.32);}100%{background:var(--surface);border-color:var(--border);}}
 @keyframes reopen-pulse{0%{background:#fff;border-color:var(--border);}38%{background:rgba(94,92,230,.08);border-color:rgba(94,92,230,.24);}100%{background:var(--surface);border-color:var(--border);}}
+@keyframes aiShine{0%{transform:translateX(-70%);}100%{transform:translateX(70%);}}
 .sync-bar{position:fixed;bottom:calc(16px + env(safe-area-inset-bottom));right:16px;background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:6px 14px;font-size:12px;color:var(--text2);display:flex;align-items:center;gap:7px;box-shadow:0 4px 14px rgba(0,0,0,.08);opacity:0;transition:opacity .3s;pointer-events:none;z-index:100;}
 .sync-bar.visible{opacity:1;}
 .sync-dot{width:7px;height:7px;border-radius:50%;background:var(--green);flex-shrink:0;}
@@ -254,9 +255,17 @@ button{appearance:none;}
 .field input:focus,.field select:focus,.field textarea:focus{border-color:var(--accent);background:var(--surface);}
 .field small{font-size:11px;color:var(--text3);}
 .task-title-ai-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:center;}
-.ai-improve-btn{border:1px solid rgba(94,92,230,.22);background:#f4f3ff;color:var(--accent);border-radius:var(--radius-sm);font-size:12px;font-weight:750;min-height:42px;padding:8px 13px;cursor:pointer;box-shadow:0 1px 4px rgba(94,92,230,.08);transition:background .15s,border-color .15s,opacity .15s;}
-.ai-improve-btn:hover:not(:disabled){background:#ecebff;border-color:rgba(94,92,230,.34);}
+.ai-improve-btn{position:relative;display:inline-flex;align-items:center;justify-content:center;gap:8px;overflow:hidden;border:1px solid rgba(94,92,230,.24);background:linear-gradient(135deg,#fff 0%,#faf9ff 48%,#f5f7ff 100%);color:var(--accent);border-radius:var(--radius-sm);font-size:13px;font-weight:800;min-height:42px;padding:8px 16px;cursor:pointer;box-shadow:0 4px 16px rgba(94,92,230,.08);transition:transform .15s,background .15s,border-color .15s,box-shadow .15s,opacity .15s;}
+.ai-improve-btn::after{content:"";position:absolute;inset:-50%;background:linear-gradient(110deg,transparent 35%,rgba(255,255,255,.75) 50%,transparent 65%);transform:translateX(-70%);opacity:0;pointer-events:none;}
+.ai-improve-btn:hover:not(:disabled){border-color:rgba(94,92,230,.42);box-shadow:0 5px 16px rgba(94,92,230,.18);transform:translateY(-1px);}
+.ai-improve-btn:hover:not(:disabled)::after,.ai-improve-btn.is-loading::after{animation:aiShine 1.6s ease-in-out infinite;opacity:.9;}
 .ai-improve-btn:disabled{opacity:.55;cursor:not-allowed;}
+.ai-improve-mark{position:relative;display:block;width:22px;height:22px;flex:0 0 22px;}
+.ai-improve-mark::before{content:"✦";position:absolute;left:0;top:1px;color:var(--accent);font-size:22px;font-weight:900;line-height:1;text-shadow:0 4px 12px rgba(94,92,230,.28);}
+.ai-improve-mark::after{content:"✦";position:absolute;right:0;top:-4px;font-size:10px;color:#7c78ff;line-height:1;}
+.ai-label-mobile{display:none;}
+.ai-help{display:flex;align-items:flex-start;gap:8px;line-height:1.35;}
+.ai-help span{color:#8b87ff;font-size:14px;line-height:1;transform:translateY(1px);flex:0 0 auto;text-shadow:0 3px 10px rgba(94,92,230,.16);}
 .ai-error{border:1px solid rgba(239,68,68,.22);background:rgba(239,68,68,.08);color:#b91c1c;border-radius:10px;padding:8px 10px;font-size:12px;font-weight:650;}
 .check-field{display:flex;align-items:center;gap:9px;color:var(--text2);font-size:13px;font-weight:700;}
 .check-field input{width:17px;height:17px;accent-color:#327fd1;}
@@ -488,6 +497,8 @@ button{appearance:none;}
   .field input,.field select,.field textarea{min-height:48px;font-size:16px;padding:12px 14px;}
   .task-title-ai-row{grid-template-columns:1fr;}
   .ai-improve-btn{width:100%;min-height:44px;font-size:13px;}
+  .ai-label-desktop{display:none;}
+  .ai-label-mobile{display:inline;}
   .task-detail-add-subtask{grid-template-columns:1fr;}
   .task-detail-add-subtask input{min-height:48px;font-size:16px;padding:12px 14px;}
   .modal-actions{flex-direction:column-reverse;align-items:stretch;}

@@ -1,9 +1,12 @@
 const MAX_INPUT_LENGTH = 300;
-const MAX_OUTPUT_LENGTH = 160;
+const MAX_TITLE_LENGTH = 120;
+const MAX_DESCRIPTION_LENGTH = 500;
 const RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000;
 const RATE_LIMIT_MAX = 20;
 const REQUEST_TIMEOUT_MS = 10000;
+const DEFAULT_MODEL = 'claude-haiku-4-5-20251001';
 const rateLimitStore = new Map();
+const TITLE_ACRONYMS = new Set(['ai', 'api', 'css', 'html', 'json', 'pwa', 'rls', 'sql', 'ui', 'ux']);
 
 function sendJson(response, statusCode, payload) {
   response.statusCode = statusCode;
@@ -47,23 +50,81 @@ async function readJsonBody(request) {
 }
 
 function extractOutputText(responseBody) {
-  if (typeof responseBody.output_text === 'string') return responseBody.output_text;
-
   const parts = [];
+  for (const content of responseBody.content || []) {
+    if (typeof content.text === 'string') parts.push(content.text);
+  }
+
+  if (typeof responseBody.output_text === 'string') parts.push(responseBody.output_text);
+
   for (const item of responseBody.output || []) {
     for (const content of item.content || []) {
       if (typeof content.text === 'string') parts.push(content.text);
     }
   }
+
   return parts.join(' ');
 }
 
-function cleanTaskTitle(text) {
+function stripJsonFence(text) {
+  return text
+    .trim()
+    .replace(/^```(?:json)?\s*/i, '')
+    .replace(/\s*```$/i, '')
+    .trim();
+}
+
+function parseImprovement(text) {
+  const cleanedText = stripJsonFence(text);
+  const jsonStart = cleanedText.indexOf('{');
+  const jsonEnd = cleanedText.lastIndexOf('}');
+  const jsonText = jsonStart >= 0 && jsonEnd > jsonStart
+    ? cleanedText.slice(jsonStart, jsonEnd + 1)
+    : cleanedText;
+
+  return JSON.parse(jsonText);
+}
+
+function cleanLine(text, maxLength) {
   return text
     .replace(/^["'`]+|["'`.]+$/g, '')
     .replace(/\s+/g, ' ')
     .trim()
-    .slice(0, MAX_OUTPUT_LENGTH);
+    .slice(0, maxLength);
+}
+
+function cleanDescription(text) {
+  return text
+    .replace(/^["'`]+|["'`]+$/g, '')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim()
+    .slice(0, MAX_DESCRIPTION_LENGTH);
+}
+
+function normalizeTitleForComparison(text) {
+  return text.trim().replace(/\s+/g, ' ').toLowerCase();
+}
+
+function polishFallbackTitle(text) {
+  return text
+    .trim()
+    .replace(/\s+/g, ' ')
+    .split(' ')
+    .map((word) => {
+      const normalized = word.toLowerCase();
+      if (TITLE_ACRONYMS.has(normalized)) return normalized.toUpperCase();
+      return normalized.charAt(0).toUpperCase() + normalized.slice(1);
+    })
+    .join(' ')
+    .slice(0, MAX_TITLE_LENGTH);
+}
+
+function getAnthropicModel() {
+  const configuredModel = String(process.env.ANTHROPIC_MODEL || '').trim();
+  if (!configuredModel || configuredModel === 'undefined' || configuredModel === 'null') {
+    return DEFAULT_MODEL;
+  }
+  return configuredModel;
 }
 
 export default async function handler(request, response) {
@@ -93,6 +154,7 @@ export default async function handler(request, response) {
   }
 
   const title = String(body?.title || '').trim();
+  const description = String(body?.description || '').trim();
   if (!title) {
     sendJson(response, 400, { error: 'Enter a task title to improve.' });
     return;
@@ -116,20 +178,27 @@ export default async function handler(request, response) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: process.env.ANTHROPIC_MODEL || 'claude-haiku-4-5-20251001',
-        max_tokens: 80,
+        model: getAnthropicModel(),
+        max_tokens: 220,
         system: [
-          'Rewrite rough task titles into one concise, actionable task title.',
-          'Return only the improved title.',
-          `Use ${MAX_OUTPUT_LENGTH} characters or fewer.`,
+          'Rewrite rough tasks into one concise title and one useful description.',
+          'Return only valid compact JSON with this exact shape: {"title":"...","description":"..."}',
+          `Use ${MAX_TITLE_LENGTH} characters or fewer for title.`,
+          `Use ${MAX_DESCRIPTION_LENGTH} characters or fewer for description.`,
+          'The title must be rewritten into a polished action phrase, not copied verbatim from the input.',
+          'Fix spelling, casing, and word order in the title when needed.',
+          'The description should be practical: one or two short sentences explaining the task outcome or next step.',
           'Keep the user language if it is clear.',
           'Do not invent dates, people, project names, or extra details.',
-          'Do not use quotes, markdown, bullets, or explanations.',
+          'Do not use markdown, bullets, or explanations outside the JSON.',
         ].join(' '),
         messages: [
           {
             role: 'user',
-            content: `Improve this task title: ${title}`,
+            content: [
+              `Task title: ${title}`,
+              description ? `Current description: ${description}` : 'Current description: none',
+            ].join('\n'),
           },
         ],
       }),
@@ -143,13 +212,31 @@ export default async function handler(request, response) {
       return;
     }
 
-    const improvedTitle = cleanTaskTitle(extractOutputText(responseBody));
-    if (!improvedTitle) {
-      sendJson(response, 502, { error: 'AI did not return an improved title.' });
+    let improvement;
+    try {
+      improvement = parseImprovement(extractOutputText(responseBody));
+    } catch {
+      sendJson(response, 502, { error: 'AI returned an unreadable suggestion.' });
       return;
     }
 
-    sendJson(response, 200, { improvedTitle });
+    let improvedTitle = cleanLine(String(improvement.title || ''), MAX_TITLE_LENGTH);
+    const improvedDescription = cleanDescription(String(improvement.description || ''));
+    const fallbackTitle = polishFallbackTitle(title);
+    if (
+      fallbackTitle
+      && normalizeTitleForComparison(improvedTitle) === normalizeTitleForComparison(title)
+      && fallbackTitle !== title
+    ) {
+      improvedTitle = fallbackTitle;
+    }
+
+    if (!improvedTitle || !improvedDescription) {
+      sendJson(response, 502, { error: 'AI did not return a complete suggestion.' });
+      return;
+    }
+
+    sendJson(response, 200, { improvedTitle, improvedDescription });
   } catch (error) {
     const message = error.name === 'AbortError'
       ? 'AI improvement timed out. Try again.'

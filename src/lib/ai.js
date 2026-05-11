@@ -1,7 +1,8 @@
 const MAX_TASK_TITLE_LENGTH = 300;
 
-export async function improveTaskTitle(title) {
+export async function improveTask(title, description = '') {
   const trimmedTitle = title.trim();
+  const trimmedDescription = description.trim();
 
   if (!trimmedTitle) {
     throw new Error('Enter a task title to improve.');
@@ -14,7 +15,7 @@ export async function improveTaskTitle(title) {
   const response = await fetch('/api/improve-task', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ title: trimmedTitle }),
+    body: JSON.stringify({ title: trimmedTitle, description: trimmedDescription }),
   });
 
   const body = await response.json().catch(() => ({}));
@@ -23,9 +24,10 @@ export async function improveTaskTitle(title) {
   }
 
   const improvedTitle = String(body.improvedTitle || '').trim();
-  if (!improvedTitle) {
-    throw new Error('AI did not return an improved title.');
+  const improvedDescription = String(body.improvedDescription || '').trim();
+  if (!improvedTitle || !improvedDescription) {
+    throw new Error('AI did not return a complete suggestion.');
   }
 
-  return improvedTitle;
+  return { title: improvedTitle, description: improvedDescription };
 }

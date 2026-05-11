@@ -7,7 +7,7 @@ export default [
   },
   js.configs.recommended,
   {
-    files: ["src/**/*.{js,jsx}", "scripts/**/*.mjs", "*.config.js"],
+    files: ["src/**/*.{js,jsx}", "scripts/**/*.mjs"],
     languageOptions: {
       ecmaVersion: "latest",
       sourceType: "module",
@@ -45,7 +45,7 @@ export default [
     },
   },
   {
-    files: ["api/**/*.js"],
+    files: ["api/**/*.js", "*.config.js"],
     languageOptions: {
       ecmaVersion: "latest",
       sourceType: "module",

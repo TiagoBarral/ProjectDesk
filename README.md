@@ -20,7 +20,7 @@ Current release: `v0.6.0` functional alpha / early private beta.
 - Task titles plus optional descriptions
 - Task detail modal with project, priority, status, description, and subtasks
 - Editable tasks and subtasks
-- AI-assisted task title improvement through a server-side Anthropic route
+- AI-assisted task title and description improvement through a server-side Anthropic route
 - Task priorities and importance levels
 - Project notes
 - Persistent file uploads and link tracking per project
@@ -210,16 +210,16 @@ src/lib/auth.js
 
 ## AI Task Improvement
 
-ProjectDesk can improve rough task titles with a small server-side Anthropic call.
+ProjectDesk can improve rough task titles and draft a practical description with a small server-side Anthropic call.
 
 - The browser calls `/api/improve-task`.
 - The API route uses the Anthropic Messages API.
 - The API key stays server-side in `ANTHROPIC_API_KEY`.
 - The default model is `claude-haiku-4-5-20251001`; override with `ANTHROPIC_MODEL` if needed.
-- The feature is click-only and does not auto-save. The suggested title fills the task title field, then the user still chooses whether to save.
-- Requests are limited to short task titles, short outputs, a 10-second timeout, and a simple per-IP hourly rate limit.
+- The feature is click-only and does not auto-save. The suggested title and description fill the modal fields, then the user still chooses whether to save.
+- Requests are limited to short task titles, bounded outputs, a 10-second timeout, and a simple per-IP hourly rate limit.
 
-For local Vite-only development, the frontend can render normally, but `/api/improve-task` is available when running through Vercel or after deployment.
+For local development, `npm run dev` also serves `/api/improve-task` through a small Vite dev middleware. Add `ANTHROPIC_API_KEY` to your local `.env` when you want to test the Improve button locally.
 
 Required server-side environment variable:
 
