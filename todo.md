@@ -46,32 +46,32 @@ Supabase sync is enabled for the current authenticated phase.
 
 ## AI Features
 - [ ] AI task improvement (ProjectDesk)
-  - Add "Improve" button next to task input.
-  - Create Vercel API route `/api/improve-task`.
-  - Use OpenAI Responses API to expand task text.
-  - Keep output short: single sentence, max about 160 chars.
-  - Do not expose API key; use server-side env var `OPENAI_API_KEY`.
-  - Add loading and error states in UI.
-  - Do not auto-save; user confirms before adding task.
+  - [x] Add "Improve" button next to task input.
+  - [x] Create Vercel API route `/api/improve-task`.
+  - [x] Use Anthropic Messages API to improve task text.
+  - [x] Keep output short, max about 160 chars.
+  - [x] Do not expose API key; use server-side env var `ANTHROPIC_API_KEY`.
+  - [x] Add loading and error states in UI.
+  - [x] Do not auto-save; user confirms before adding task.
 
   Safety:
-  - Limit input length to about 300 chars.
-  - Limit output length.
-  - Add rate limiting, for example 20 requests/hour per IP.
-  - Add request timeout around 10 seconds.
-  - Use a low-cost model only.
-  - Only trigger on button click; no automatic calls.
+  - [x] Limit input length to about 300 chars.
+  - [x] Limit output length.
+  - [x] Add rate limiting, for example 20 requests/hour per IP.
+  - [x] Add request timeout around 10 seconds.
+  - [x] Use a low-cost model only.
+  - [x] Only trigger on button click; no automatic calls.
 
   Platform setup:
-  - Create OpenAI API key.
-  - Add `OPENAI_API_KEY` to Vercel env vars.
-  - Create separate OpenAI project for ProjectDesk.
-  - Set low budget alerts, about $2-$5.
-  - Restrict to one model.
+  - [ ] Create Anthropic API key.
+  - [ ] Add `ANTHROPIC_API_KEY` to Vercel env vars.
+  - [ ] Create separate Anthropic workspace/project for ProjectDesk if desired.
+  - [ ] Set low budget alerts, about $2-$5.
+  - [ ] Restrict to one model.
+  - [ ] Test the deployed `/api/improve-task` route from the app.
 
   Notes:
-  - Implement after current sync system is stable.
-  - Consider adding last synced UI first because it is higher priority.
+  - Code implementation is in place; production use needs the Vercel/Anthropic environment setup above.
 
 ## Routing and Navigation
 - [ ] Keep testing name-based project routes after renames.

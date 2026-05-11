@@ -20,6 +20,7 @@ Current release: `v0.6.0` functional alpha / early private beta.
 - Task titles plus optional descriptions
 - Task detail modal with project, priority, status, description, and subtasks
 - Editable tasks and subtasks
+- AI-assisted task title improvement through a server-side Anthropic route
 - Task priorities and importance levels
 - Project notes
 - Persistent file uploads and link tracking per project
@@ -44,6 +45,7 @@ Current release: `v0.6.0` functional alpha / early private beta.
 - React
 - Vite
 - Supabase JavaScript client
+- Anthropic Messages API through a Vercel serverless function
 - CSS
 - localStorage
 - PWA manifest and service worker
@@ -52,8 +54,10 @@ Current release: `v0.6.0` functional alpha / early private beta.
 
 ```text
 ProjectDesk/
+  api/
+    improve-task.js
   public/
-    icon.svg
+    icons/
     manifest.webmanifest
     sw.js
   src/
@@ -204,6 +208,31 @@ src/lib/fileStorage.js
 src/lib/auth.js
 ```
 
+## AI Task Improvement
+
+ProjectDesk can improve rough task titles with a small server-side Anthropic call.
+
+- The browser calls `/api/improve-task`.
+- The API route uses the Anthropic Messages API.
+- The API key stays server-side in `ANTHROPIC_API_KEY`.
+- The default model is `claude-haiku-4-5-20251001`; override with `ANTHROPIC_MODEL` if needed.
+- The feature is click-only and does not auto-save. The suggested title fills the task title field, then the user still chooses whether to save.
+- Requests are limited to short task titles, short outputs, a 10-second timeout, and a simple per-IP hourly rate limit.
+
+For local Vite-only development, the frontend can render normally, but `/api/improve-task` is available when running through Vercel or after deployment.
+
+Required server-side environment variable:
+
+```env
+ANTHROPIC_API_KEY=your-anthropic-api-key
+```
+
+Optional:
+
+```env
+ANTHROPIC_MODEL=claude-haiku-4-5-20251001
+```
+
 ## Supabase Auth Setup
 
 ProjectDesk now uses Supabase Email/Password Auth for cross-device sync.
@@ -273,9 +302,7 @@ VITE_SUPABASE_ANON_KEY=your-anon-key
 
 ## Authentication
 
-Authentication is not enabled yet.
-
-Supabase is intentionally simple for now: no login/auth, no RLS, and no realtime. Before sharing this app publicly, add authentication and enable Supabase RLS policies for authenticated users.
+ProjectDesk uses Supabase Email/Password Auth for cross-device sync. Public tables are protected with RLS policies for authenticated users, and the app still keeps localStorage as the offline cache/fallback.
 
 ## PWA
 

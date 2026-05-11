@@ -7,6 +7,7 @@ This project follows the spirit of [Keep a Changelog](https://keepachangelog.com
 ## [Unreleased]
 
 ### Added
+- Added a server-side AI task title improvement action using the Anthropic Messages API, with input/output limits, timeout handling, rate limiting, and loading/error UI in the task modal.
 - Added ProjectDesk PNG app icons for favicon, Apple touch icon, standard PWA icons, and maskable Android install icons.
 - Added homepage project search across project names, tasks, notes, and file metadata.
 - Added a homepage project status filter for narrowing large project lists.

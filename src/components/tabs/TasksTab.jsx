@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import ImportanceBadge from '../ImportanceBadge.jsx';
 import TaskDetailModal from '../TaskDetailModal.jsx';
 import { priorityClass, priorityFromImportance } from '../helpers.js';
+import { improveTaskTitle } from '../../lib/ai.js';
 
 export default function TasksTab({
   project,
@@ -292,6 +293,22 @@ function TaskModal({ title, actionLabel, task, onClose, onSubmit }) {
   const [taskTitle, setTaskTitle] = useState(task?.title || task?.text || '');
   const [description, setDescription] = useState(task?.description || '');
   const [importance, setImportance] = useState(task?.importance || 'medium');
+  const [improveError, setImproveError] = useState('');
+  const [isImproving, setIsImproving] = useState(false);
+
+  const improveTitle = async () => {
+    setImproveError('');
+    setIsImproving(true);
+
+    try {
+      const improvedTitle = await improveTaskTitle(taskTitle);
+      setTaskTitle(improvedTitle);
+    } catch (error) {
+      setImproveError(error.message || 'AI improvement failed.');
+    } finally {
+      setIsImproving(false);
+    }
+  };
 
   const submit = () => {
     if (!taskTitle.trim()) return;
@@ -304,7 +321,19 @@ function TaskModal({ title, actionLabel, task, onClose, onSubmit }) {
       <h2>{title}</h2>
       <div className="field">
         <label>Title</label>
-        <input autoFocus value={taskTitle} onChange={(event) => setTaskTitle(event.target.value)} onKeyDown={(event) => event.key === 'Enter' && submit()} placeholder="What needs to be done?" />
+        <div className="task-title-ai-row">
+          <input autoFocus value={taskTitle} onChange={(event) => { setTaskTitle(event.target.value); setImproveError(''); }} onKeyDown={(event) => event.key === 'Enter' && submit()} placeholder="What needs to be done?" />
+          <button
+            className={`ai-improve-btn ${isImproving ? 'is-loading' : ''}`}
+            type="button"
+            disabled={isImproving || !taskTitle.trim()}
+            onClick={improveTitle}
+          >
+            Improve
+          </button>
+        </div>
+        {improveError && <div className="ai-error">{improveError}</div>}
+        <small>AI suggests a cleaner title only. You still choose whether to save it.</small>
       </div>
       <div className="field">
         <label>Description</label>
